@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presupuesto Participativo - Girardota</title>
+    <!-- Fuentes Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Estilos -->
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Iconos de Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+<body>
+    <!-- Vista de Autenticación Principal -->
+    <div class="login-view" id="login-view">
+        <div class="login-card">
+            <div style="background:var(--primary); padding:1rem; border-radius:50%; margin-bottom:1rem; display:flex; align-items:center; justify-content:center;">
+                <i data-lucide="shield" style="color:white; width:40px; height:40px;"></i>
+            </div>
+            <h2>Presupuesto Participativo</h2>
+            <p>Portal Administrativo - Municipio de Girardota<br>Subsecretaría de Participación Ciudadana</p>
+            <form class="auth-form" id="form-login" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label class="form-label" for="login-user">Usuario de Alcaldía</label>
+                    <input type="text" id="login-user" class="form-control" autocomplete="username" placeholder="Ej. admin" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="login-pass">Contraseña de Seguridad</label>
+                    <input type="password" id="login-pass" class="form-control" autocomplete="current-password" placeholder="***" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;">
+                    <i data-lucide="log-in"></i> Iniciar Sesión Seguro
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTENEDOR (Protegido / Oculto por defecto) -->
+    <div id="app-container" style="display: none;">
+        <!-- Overlay para móviles -->
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Menú Lateral (Sidebar) -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <!-- Aquí se cargará el escudo (reemplazar la imagen en la carpeta correspondiente) -->
+                    <img src="img/escudo.png" alt="Escudo Girardota" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Escudo_de_Girardota.svg/200px-Escudo_de_Girardota.svg.png'">
+                </div>
+                <h2>Girardota</h2>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#" class="nav-link active" onclick="switchView(event, 'view-dashboard')"><i data-lucide="layout-dashboard"></i> Resumen Global</a></li>
+                <li><a href="#" class="nav-link" onclick="switchView(event, 'view-comites')"><i data-lucide="users"></i> Comités y JACs</a></li>
+                <li><a href="#" class="nav-link" onclick="switchView(event, 'view-proyectos')"><i data-lucide="folder-kanban"></i> Proyectos</a></li>
+                <li><a href="#" class="nav-link" onclick="switchView(event, 'view-pagos')"><i data-lucide="file-check-2"></i> Avances & Pagos</a></li>
+                <hr id="divider-config" style="border-color: rgba(255,255,255,0.1); margin: 1rem 0;">
+                <li id="menu-config"><a href="#" class="nav-link" onclick="switchView(event, 'view-config')"><i data-lucide="settings"></i> Configuración</a></li>
+                <li style="margin-top: auto; padding-top:2rem;">
+                    <a href="#" class="nav-link" onclick="handleLogout()" style="color: #ef4444; font-weight:600;">
+                        <i data-lucide="log-out"></i> Cerrar Sesión
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Contenido Principal -->
+        <main class="main-content">
+            <!-- Vista 1: Resumen Global (Dashboard) -->
+            <div id="view-dashboard" class="view-section">
+                <header class="dashboard-header">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+                        <div>
+                            <h1>Presupuesto Participativo</h1>
+                            <p>Gestión y seguimiento de los recursos asignados</p>
+                        </div>
+                    </div>
+                    <!-- Selector de Año interactivo -->
+                    <div class="year-selector" id="year-selector-container">
+                        <!-- Los botones de año se renderizan por JS -->
+                    </div>
+                </header>
+
+                <!-- Tarjetas de Estadísticas Globales del Año -->
+                <section class="stats-grid" id="stats-container">
+                    <!-- Se renderizan por JS -->
+                </section>
+
+                <!-- Grilla Listado de JACs -->
+                <section>
+                    <div class="section-title">
+                        <h2>Distribución por Junta de Acción Comunal (JAC)</h2>
+                        <button class="btn btn-primary" onclick="openModal('modal-jac')"><i data-lucide="plus"></i> Asignar a JAC</button>
+                    </div>
+                    <div class="jacs-grid" id="jacs-container">
+                        <!-- Tarjetas de JACs se renderizan por JS -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- Vista 2: Comités y JACs -->
+            <div id="view-comites" class="view-section hidden">
+                <header class="dashboard-header">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+                        <div>
+                            <h1>Directorio de Comités y JACs</h1>
+                            <p>Gestión de la información básica y líderes comunales</p>
+                        </div>
+                    </div>
+                </header>
+                <section>
+                    <div class="section-title">
+                        <h2>Listado General</h2>
+                        <button class="btn btn-primary" onclick="openModal('modal-directory-jac')"><i data-lucide="plus"></i> Añadir JAC</button>
+                    </div>
+                    <div class="jacs-grid" id="directory-container">
+                        <!-- Renderizado por JS -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- Vista 3: Proyectos (Kanban) -->
+            <div id="view-proyectos" class="view-section hidden">
+                <header class="dashboard-header">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+                        <div>
+                            <h1>Tablero de Proyectos</h1>
+                            <p>Seguimiento visual del estado de las obras e iniciativas</p>
+                        </div>
+                    </div>
+                </header>
+                <section>
+                    <div class="section-title">
+                        <h2>Kanban por Estados</h2>
+                        <button class="btn btn-primary" onclick="openModalProject()"><i data-lucide="plus"></i> Nuevo Proyecto</button>
+                    </div>
+                    <div class="kanban-board" id="kanban-container">
+                        <!-- Columna: Planificación -->
+                        <div class="kanban-column col-plan" id="col-Planificación">
+                            <div class="kanban-column-header">
+                                <span>Planificación</span>
+                                <span class="badge" id="count-Planificación">0</span>
+                            </div>
+                            <div class="kanban-cards"></div>
+                        </div>
+                        <!-- Columna: En Ejecución -->
+                        <div class="kanban-column col-run" id="col-En Ejecución">
+                            <div class="kanban-column-header">
+                                <span>En Ejecución</span>
+                                <span class="badge" id="count-En Ejecución">0</span>
+                            </div>
+                            <div class="kanban-cards"></div>
+                        </div>
+                        <!-- Columna: Finalizado -->
+                        <div class="kanban-column col-done" id="col-Finalizado">
+                            <div class="kanban-column-header">
+                                <span>Finalizado</span>
+                                <span class="badge" id="count-Finalizado">0</span>
+                            </div>
+                            <div class="kanban-cards"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Vista 4: Avances & Pagos -->
+            <div id="view-pagos" class="view-section hidden">
+                <header class="dashboard-header">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+                        <div>
+                            <h1>Ejecución Financiera: Avances & Pagos</h1>
+                            <p>Registro de desembolsos y estados de cuenta en pesos colombianos (COP)</p>
+                        </div>
+                    </div>
+                </header>
+                <section>
+                    <div class="section-title">
+                        <h2>Resumen por Junta (JAC)</h2>
+                        <button class="btn btn-primary" onclick="openModalPayment()"><i data-lucide="dollar-sign"></i> Nuevo Desembolso</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Junta de Acción Comunal</th>
+                                    <th>Total Asignado</th>
+                                    <th>Total Pagado</th>
+                                    <th>Saldo Pendiente</th>
+                                    <th>Avance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-pagos-jacs">
+                                <!-- JS loads -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <section style="margin-top:2rem;">
+                    <div class="section-title">
+                        <h2>Historial de Movimientos Financieros</h2>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>JAC Beneficiaria</th>
+                                    <th>Descripción de Pago</th>
+                                    <th>Valor Girado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-pagos-history">
+                                <!-- JS loads -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Vista 5: Configuración -->
+            <div id="view-config" class="view-section hidden">
+                <header class="dashboard-header">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <button class="hamburger-btn" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+                        <div>
+                            <h1>Configuración Global del Presupuesto</h1>
+                            <p>Gestión estructural de fondos y apertura de nuevos ciclos fiscales</p>
+                        </div>
+                    </div>
+                </header>
+                <section>
+                    <div class="section-title">
+                        <h2>Techos Anuales y Control de Recursos</h2>
+                        <button class="btn btn-primary" onclick="openModalYear()"><i data-lucide="plus-circle"></i> Nuevo Año Presupuestal</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Año Fiscal</th>
+                                    <th>Fondo Base Inicial</th>
+                                    <th>Total Adiciones</th>
+                                    <th>Superávit (Arrastre)</th>
+                                    <th>Presupuesto Total Resultante</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-config-years">
+                                <!-- JS loads -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                
+                <section style="margin-top: 3rem;">
+                    <div class="section-title">
+                        <h2>Gestión de Usuarios y Seguridad</h2>
+                        <button class="btn btn-primary" onclick="openModalUser()"><i data-lucide="user-plus"></i> Ingresar Funcionario</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre del Funcionario</th>
+                                    <th>Usuario (Identificador)</th>
+                                    <th>Rol Administrativo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-config-users">
+                                <!-- JS loads -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- MÓDULOS MODALES -->
+    
+    <!-- Modal: Asignar o Editar JAC -->
+    <div class="modal-overlay" id="modal-jac">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-jac-title">Asignar Presupuesto a Junta (JAC)</h3>
+                <button class="modal-close" onclick="closeModal('modal-jac')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-jac" onsubmit="handleJacSubmit(event)">
+                <input type="hidden" id="jac-id" value="">
+                <div class="form-group">
+                    <label class="form-label" for="jac-name">Nombre de la JAC o Vereda</label>
+                    <input type="text" id="jac-name" class="form-control" placeholder="Ej. Barrio Alcalá..." required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="jac-budget">Presupuesto Inicial ($ COP)</label>
+                    <input type="number" id="jac-budget" class="form-control" placeholder="Ej. 100000000" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="jac-addition">Adiciones Presupuestales ($ COP)</label>
+                    <input type="number" id="jac-addition" class="form-control" value="0" min="0">
+                    <small style="color:var(--text-muted); font-size:0.75rem; margin-top:0.25rem; display:block">
+                        El costo inicial + adiciones se descuentan del fondo.
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="jac-projects">Número de Proyectos Incluidos</label>
+                    <input type="number" id="jac-projects" class="form-control" value="1" min="0" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-jac')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Asignar Fondo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Registrar/Editar JAC en el Directorio -->
+    <div class="modal-overlay" id="modal-directory-jac">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-directory-title">Registrar Información de JAC</h3>
+                <button class="modal-close" onclick="closeModal('modal-directory-jac')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-directory-jac" onsubmit="handleDirectorySubmit(event)">
+                <input type="hidden" id="dir-jac-id" value="">
+                <div class="form-group">
+                    <label class="form-label" for="dir-jac-name">Nombre de la Junta (JAC)</label>
+                    <input type="text" id="dir-jac-name" class="form-control" placeholder="Ej. Barrio Alcalá..." required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="dir-jac-zone">Zona</label>
+                    <select id="dir-jac-zone" class="form-control" required>
+                        <option value="Urbana">Urbana</option>
+                        <option value="Rural">Rural</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="dir-jac-president">Nombre del Presidente / Lider</label>
+                    <input type="text" id="dir-jac-president" class="form-control" placeholder="Ej. Juan Pérez..." required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="dir-jac-phone">Teléfono de Contacto</label>
+                    <input type="tel" id="dir-jac-phone" class="form-control" placeholder="Ej. 3001234567" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-directory-jac')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Datos</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Crear/Editar Proyecto -->
+    <div class="modal-overlay" id="modal-project">
+        <div class="modal" style="width: 90%; max-width: 650px;">
+            <div class="modal-header">
+                <h3 id="modal-project-title">Detalle del Proyecto</h3>
+                <button class="modal-close" onclick="closeModal('modal-project')"><i data-lucide="x"></i></button>
+            </div>
+            
+            <div class="modal-tabs">
+                <button type="button" class="tab-btn active" id="tab-btn-general" onclick="switchProjectTab('ptab-general')">General</button>
+                <button type="button" class="tab-btn" id="tab-btn-docs" onclick="switchProjectTab('ptab-docs')" style="display:none">Documentos</button>
+                <button type="button" class="tab-btn" id="tab-btn-photos" onclick="switchProjectTab('ptab-photos')" style="display:none">Fotos</button>
+                <button type="button" class="tab-btn" id="tab-btn-notes" onclick="switchProjectTab('ptab-notes')" style="display:none">Bitácora</button>
+            </div>
+
+            <!-- Tab General -->
+            <div id="ptab-general" class="tab-content active">
+                <form id="form-project" onsubmit="handleProjectSubmit(event)">
+                    <input type="hidden" id="proj-id" value="">
+                    <div class="form-group">
+                        <label class="form-label" for="proj-year">Año del Presupuesto</label>
+                        <select id="proj-year" class="form-control" required onchange="populateJacSelect()"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="proj-jac">JAC Ejecutora</label>
+                        <select id="proj-jac" class="form-control" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="proj-title">Nombre del Proyecto</label>
+                        <input type="text" id="proj-title" class="form-control" placeholder="Ej. Construcción de..." required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="proj-status">Estado Actual</label>
+                        <select id="proj-status" class="form-control" required>
+                            <option value="Planificación">Planificación</option>
+                            <option value="En Ejecución">En Ejecución</option>
+                            <option value="Finalizado">Finalizado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="proj-budget">Presupuesto Inicial ($ COP)</label>
+                        <input type="number" id="proj-budget" class="form-control" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="proj-has-addition">¿Hubo Adición Presupuestal?</label>
+                        <select id="proj-has-addition" class="form-control" required onchange="document.getElementById('proj-addition-group').style.display = this.value === 'si' ? 'block' : 'none'">
+                            <option value="no">No</option>
+                            <option value="si">Sí</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="proj-addition-group" style="display: none;">
+                        <label class="form-label" for="proj-addition">Valor de la Adición ($ COP)</label>
+                        <input type="number" id="proj-addition" class="form-control" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="proj-desc">Breve Descripción</label>
+                        <textarea id="proj-desc" class="form-control" rows="3" placeholder="Detalles de la iniciativa..."></textarea>
+                    </div>
+                    <div class="modal-footer" style="justify-content: space-between; margin-top:2rem;">
+                        <button type="button" class="btn" id="btn-delete-proj" onclick="deleteProject()" style="display:none; color:var(--danger); border:1px solid var(--danger); background:transparent;"><i data-lucide="trash-2"></i> Eliminar</button>
+                        <div style="display:flex; gap:1rem; margin-left:auto;">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('modal-project')">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar Información</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tab Documentos -->
+            <div id="ptab-docs" class="tab-content">
+                <div class="upload-zone" onclick="document.getElementById('proj-doc-upload').click()">
+                    <i data-lucide="file-up" style="width:32px; height:32px; margin-bottom:0.5rem; color:var(--text-muted)"></i>
+                    <p>Haz clic para subir Contratos o Actas (Simulación PDF)</p>
+                    <input type="file" id="proj-doc-upload" style="display:none" onchange="handleMockDocUpload(event)">
+                </div>
+                <div class="doc-list" id="proj-docs-list"></div>
+            </div>
+
+            <!-- Tab Fotografías -->
+            <div id="ptab-photos" class="tab-content">
+                <div class="upload-zone" onclick="document.getElementById('proj-photo-upload').click()">
+                    <i data-lucide="image-plus" style="width:32px; height:32px; margin-bottom:0.5rem; color:var(--text-muted)"></i>
+                    <p>Haz clic para subir un Registro Fotográfico de Avance</p>
+                    <input type="file" id="proj-photo-upload" accept="image/*" style="display:none" onchange="handleMockPhotoUpload(event)">
+                </div>
+                <div class="photo-grid" id="proj-photos-list"></div>
+            </div>
+
+            <!-- Tab Anotaciones (Bitácora) -->
+            <div id="ptab-notes" class="tab-content">
+                <div class="timeline-notes" id="proj-notes-list"></div>
+                <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+                    <input type="text" id="proj-note-input" class="form-control" placeholder="Escribir nota de auditoría u observación...">
+                    <button type="button" class="btn btn-primary" onclick="handleMockNoteAdd()"><i data-lucide="send"></i> Guardar</button>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Modal: Registrar Pago/Avance -->
+    <div class="modal-overlay" id="modal-payment">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Registrar Desembolso / Pago</h3>
+                <button class="modal-close" onclick="closeModal('modal-payment')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-payment" onsubmit="handlePaymentSubmit(event)">
+                <div class="form-group">
+                    <label class="form-label" for="pay-jac">JAC Receptora</label>
+                    <select id="pay-jac" class="form-control" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="pay-amount">Monto a Girar / Desembolsar ($ COP)</label>
+                    <input type="number" id="pay-amount" class="form-control" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="pay-date">Fecha del Movimiento</label>
+                    <input type="date" id="pay-date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="pay-desc">Descripción / Asunto del Pago</label>
+                    <input type="text" id="pay-desc" class="form-control" placeholder="Ej. Pago adelanto obras..." required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-payment')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar Pago</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Registrar/Editar Año Principal -->
+    <div class="modal-overlay" id="modal-year">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-year-title">Inaugurar Año Presupuestal</h3>
+                <button class="modal-close" onclick="closeModal('modal-year')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-year" onsubmit="handleYearSubmit(event)">
+                <div class="form-group">
+                    <label class="form-label" for="cfg-year">Año Calendario</label>
+                    <input type="number" id="cfg-year" class="form-control" placeholder="Ej. 2027" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cfg-initial">Aprobación de Fondo Fijo Inicial ($ COP)</label>
+                    <input type="number" id="cfg-initial" class="form-control" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cfg-addition">Aprobación de Adiciones ($ COP)</label>
+                    <input type="number" id="cfg-addition" class="form-control" value="0" min="0">
+                </div>
+                <!-- El Superavit se autocalcula y no se edita acá -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-year')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Configuración</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Registrar/Editar Usuario (Gestor/Admin) -->
+    <div class="modal-overlay" id="modal-user">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-user-title">Registrar Funcionario</h3>
+                <button class="modal-close" onclick="closeModal('modal-user')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-user" onsubmit="handleUserSubmit(event)">
+                <input type="hidden" id="user-id">
+                <div class="form-group">
+                    <label class="form-label" for="user-name">Nombre Completo</label>
+                    <input type="text" id="user-name" class="form-control" placeholder="Ej. Juan Pérez" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="user-username">Usuario de Logueo</label>
+                    <input type="text" id="user-username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="user-pass">Contraseña</label>
+                    <input type="text" id="user-pass" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="user-role">Privilegios (Rol)</label>
+                    <select id="user-role" class="form-control" required>
+                        <option value="gestor">Gestor (Añade Proyectos y Pagos)</option>
+                        <option value="admin">Administrador Global (Restricción Total)</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-user')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts de la Aplicación -->
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // Inicializar Iconos
+        lucide.createIcons();
+    </script>
+</body>
+</html>
