@@ -2,9 +2,9 @@
 // backend/config.php
 
 define('DB_HOST', 'localhost');
-define('DB_USER', 'root'); // Cuando lo subas a Hostinger, pones aquí tu usuario de BD
-define('DB_PASS', '');     // Aquí va la contraseña de la BD en Hostinger
-define('DB_NAME', 'presupuestos'); // Aquí el nombre de tu base de datos
+define('DB_USER', 'u738685852_userpp'); 
+define('DB_PASS', 'u738685852_ppGira2026**');     
+define('DB_NAME', 'u738685852_pp'); 
 
 function getDB() {
     $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);

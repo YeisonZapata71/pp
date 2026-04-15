@@ -149,24 +149,7 @@ const renderYearSelector = () => {
   });
 };
 
-const getSuperavitForYear = (year) => {
-  if (year <= 2024) { 
-    const gb = globalBudgets.find(y => y.year === year);
-    return gb ? gb.superavit : 0;
-  }
-  
-  const prevYear = year - 1;
-  const gbPrev = globalBudgets.find(y => y.year === prevYear);
-  if (!gbPrev) return 0;
-  
-  const prevSuperavit = getSuperavitForYear(prevYear);
-  const prevTotalBudget = gbPrev.initialBudget + (gbPrev.addition || 0) + prevSuperavit;
-  
-  const jacsPrev = mockJACs.filter(j => j.year === prevYear);
-  const totalPaidPrev = jacsPrev.reduce((sum, jac) => sum + jac.paid, 0);
-  
-  return prevTotalBudget - totalPaidPrev;
-};
+// getSuperavitForYear deprecado ya que ahora el superávit se controla manualmente.
 
 // Renderizar Tablero Global (Tarjetas visuales)
 const renderDashboard = () => {
@@ -178,11 +161,13 @@ const renderDashboard = () => {
   
   const jacsOfYear = mockJACs.filter(j => j.year === currentYear);
   
-  const superavit = getSuperavitForYear(currentYear);
+  const superavit = parseInt(yearData.superavit, 10) || 0;
   const totalBudget = yearData.initialBudget + (yearData.addition || 0) + superavit;
   
-  const totalAssigned = jacsOfYear.reduce((sum, jac) => sum + (jac.assigned + (jac.addition || 0)), 0);
-  const totalAvailable = totalBudget - totalAssigned;
+  const projectsOfYear = mockProjects.filter(p => p.year === currentYear);
+  const totalAssignedToProjects = projectsOfYear.reduce((sum, p) => sum + (p.budget + (p.hasAddition ? p.addition : 0)), 0);
+  
+  const totalAvailable = totalBudget - totalAssignedToProjects;
   const totalPaid = jacsOfYear.reduce((sum, jac) => sum + jac.paid, 0);
   
   // Limpiar contenedores
@@ -204,11 +189,11 @@ const renderDashboard = () => {
       <div class="stat-value">${formatCurrency(totalBudget)}</div>
     </div>
     <div class="stat-card glass-panel">
-      <div class="stat-title">Asignado a JACs</div>
-      <div class="stat-value">${formatCurrency(totalAssigned)}</div>
+      <div class="stat-title">Asignado a Proyectos</div>
+      <div class="stat-value">${formatCurrency(totalAssignedToProjects)}</div>
     </div>
     <div class="stat-card glass-panel stat-warning">
-      <div class="stat-title">Disponible (Fondo)</div>
+      <div class="stat-title">Disponible (Fondo Libre)</div>
       <div class="stat-value">${formatCurrency(totalAvailable)}</div>
     </div>
     <div class="stat-card glass-panel stat-success">
@@ -866,16 +851,22 @@ const renderConfig = () => {
   const sortedBudgets = [...globalBudgets].sort((a,b) => b.year - a.year);
   
   sortedBudgets.forEach(b => {
-    const superavit = getSuperavitForYear(b.year);
+    const superavit = parseInt(b.superavit, 10) || 0;
     const total = b.initialBudget + (b.addition || 0) + superavit;
+    
+    // Calcular en uso real (Basado en proyectos)
+    const projectsOfYear = mockProjects.filter(p => p.year === b.year);
+    const assignedToProjects = projectsOfYear.reduce((sum, p) => sum + (p.budget + (p.hasAddition ? p.addition : 0)), 0);
+    const remaining = total - assignedToProjects;
     
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><strong style="font-size:1.1rem; color:var(--primary)">${b.year}</strong></td>
       <td>${formatCurrency(b.initialBudget)}</td>
-      <td>${formatCurrency(b.addition || 0)}</td>
-      <td style="color:var(--text-muted)">+ ${formatCurrency(superavit)}</td>
+      <td>${formatCurrency((b.addition || 0) + superavit)}</td>
       <td style="color:var(--secondary); font-weight:600;">${formatCurrency(total)}</td>
+      <td style="color:var(--danger)">${formatCurrency(assignedToProjects)}</td>
+      <td style="color:var(--success); font-weight:700;">${formatCurrency(remaining)}</td>
       <td>
         <button class="btn-icon" onclick="openModalYear(${b.year})" title="Ajustar Presupuesto Anual">
           <i data-lucide="settings-2" style="width:18px; height:18px"></i>
@@ -897,9 +888,11 @@ const openModalYear = (year) => {
     document.getElementById('cfg-year').readOnly = true;
     document.getElementById('cfg-initial').value = b.initialBudget;
     document.getElementById('cfg-addition').value = b.addition || 0;
+    document.getElementById('cfg-superavit').value = b.superavit || 0;
   } else {
     document.getElementById('modal-year-title').textContent = 'Inaugurar Año Presupuestal';
     document.getElementById('cfg-year').readOnly = false;
+    document.getElementById('cfg-superavit').value = 0;
   }
   openModal('modal-year');
 };
@@ -909,11 +902,13 @@ const handleYearSubmit = async (e) => {
   const yearInput = parseInt(document.getElementById('cfg-year').value, 10);
   const initialInput = parseInt(document.getElementById('cfg-initial').value, 10);
   const additionInput = parseInt(document.getElementById('cfg-addition').value, 10) || 0;
+  const superavitInput = parseInt(document.getElementById('cfg-superavit').value, 10) || 0;
   
   await fetchData('global_budgets', 'POST', {
       year: yearInput,
       initialBudget: initialInput,
-      addition: additionInput
+      addition: additionInput,
+      superavit: superavitInput
   });
   
   await loadDataFromAPI();

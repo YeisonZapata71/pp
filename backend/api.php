@@ -55,10 +55,11 @@ switch ($endpoint) {
             $year = $input['year'];
             $initial = $input['initialBudget'] ?? 0;
             $addition = $input['addition'] ?? 0;
-            $sql = "INSERT INTO global_budgets (year, initial_budget, addition, superavit) VALUES (?, ?, ?, 0) 
-                    ON DUPLICATE KEY UPDATE initial_budget=?, addition=?";
+            $superavit = $input['superavit'] ?? 0;
+            $sql = "INSERT INTO global_budgets (year, initial_budget, addition, superavit) VALUES (?, ?, ?, ?) 
+                    ON DUPLICATE KEY UPDATE initial_budget=?, addition=?, superavit=?";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("iiiii", $year, $initial, $addition, $initial, $addition);
+            $stmt->bind_param("iiiiiii", $year, $initial, $addition, $superavit, $initial, $addition, $superavit);
             $stmt->execute();
             echo json_encode(["status" => "success"]);
         }

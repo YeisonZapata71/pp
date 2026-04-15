@@ -242,10 +242,11 @@
                             <thead>
                                 <tr>
                                     <th>Año Fiscal</th>
-                                    <th>Fondo Base Inicial</th>
-                                    <th>Total Adiciones</th>
-                                    <th>Superávit (Arrastre)</th>
-                                    <th>Presupuesto Total Resultante</th>
+                                    <th>Presupuesto Inicial Base</th>
+                                    <th>Adición + Superávit</th>
+                                    <th>Presupuesto Total (Bruto)</th>
+                                    <th>Asignado a Proyectos (Comprometido)</th>
+                                    <th>Saldo Real Disponible (Disponible)</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -507,7 +508,10 @@
                     <label class="form-label" for="cfg-addition">Aprobación de Adiciones ($ COP)</label>
                     <input type="number" id="cfg-addition" class="form-control" value="0" min="0">
                 </div>
-                <!-- El Superavit se autocalcula y no se edita acá -->
+                <div class="form-group">
+                    <label class="form-label" for="cfg-superavit">Superávit (Arrastre Anterior) ($ COP)</label>
+                    <input type="number" id="cfg-superavit" class="form-control" value="0" min="0">
+                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('modal-year')">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Guardar Configuración</button>
