@@ -1,9 +1,38 @@
 // js/app.js
 
+// --- ESTADO GLOBAL ---
+let globalBudgets = [];
+let mockJACs = [];
+let mockDirectoryJACs = [];
+let mockProjects = [];
+let mockPayments = [];
+let mockUsers = [];
+let currentYear = new Date().getFullYear();
+
+const API_URL = 'backend/api.php?endpoint=';
+
+const fetchData = async (endpoint, method="GET", body=null) => {
+    const opts = { method, headers: {'Content-Type': 'application/json'} };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(API_URL + endpoint, opts);
+    return await res.json();
+};
+
+const loadDataFromAPI = async () => {
+    try {
+        globalBudgets = await fetchData('global_budgets');
+        mockJACs = await fetchData('jacs');
+        mockDirectoryJACs = await fetchData('directory_jacs');
+        mockProjects = await fetchData('projects');
+        mockPayments = await fetchData('payments');
+        mockUsers = await fetchData('users');
+    } catch(e) { console.error("Error cargando DB:", e); }
+};
+
 // -----------------------------------------
 // LÓGICA DE AUTENTICACIÓN
 // -----------------------------------------
-const checkAuth = () => {
+const checkAuth = async () => {
   const isLogged = sessionStorage.getItem('pp_logged_in') === 'true';
   const loginView = document.getElementById('login-view');
   const appContainer = document.getElementById('app-container');
@@ -11,24 +40,24 @@ const checkAuth = () => {
   if (isLogged) {
     loginView.classList.add('hidden');
     appContainer.style.display = 'flex';
-    initApp();
+    await initApp();
   } else {
     loginView.classList.remove('hidden');
     appContainer.style.display = 'none';
   }
 };
 
-const handleLogin = (e) => {
+const handleLogin = async (e) => {
   e.preventDefault();
   const user = document.getElementById('login-user').value;
   const pass = document.getElementById('login-pass').value;
   
-  const foundUser = mockUsers.find(u => u.username === user && u.password === pass);
+  const res = await fetchData('login', 'POST', {username: user, password: pass});
   
-  if (foundUser) {
+  if (res.status === 'success' && res.user) {
     sessionStorage.setItem('pp_logged_in', 'true');
-    sessionStorage.setItem('pp_role', foundUser.role || 'gestor');
-    sessionStorage.setItem('pp_user_name', foundUser.name);
+    sessionStorage.setItem('pp_role', res.user.role || 'gestor');
+    sessionStorage.setItem('pp_user_name', res.user.name);
     
     const appContainer = document.getElementById('app-container');
     const loginView = document.getElementById('login-view');
@@ -36,15 +65,15 @@ const handleLogin = (e) => {
     appContainer.style.opacity = '0';
     appContainer.style.display = 'flex';
     
-    setTimeout(() => {
+    setTimeout(async () => {
       appContainer.style.transition = 'opacity 0.6s ease';
       appContainer.style.opacity = '1';
       loginView.classList.add('hidden');
-      initApp();
+      await initApp();
     }, 100);
     
   } else {
-    alert('Credenciales incorrectas. (admin / 123)');
+    alert('Credenciales incorrectas.');
   }
 };
 
@@ -309,17 +338,18 @@ const editJac = (id) => {
   openModal('modal-jac');
 };
 
-const deleteJac = (jacId) => {
+const deleteJac = async (jacId) => {
   const jacIndex = mockJACs.findIndex(j => j.id === jacId);
   if (jacIndex === -1) return;
   
   if (confirm(`¿Eliminar asignación de "${mockJACs[jacIndex].name}"?`)) {
-    mockJACs.splice(jacIndex, 1);
+    await fetchData('jacs', 'DELETE', {id: jacId});
+    await loadDataFromAPI();
     renderDashboard();
   }
 };
 
-const handleJacSubmit = (e) => {
+const handleJacSubmit = async (e) => {
   e.preventDefault();
   
   const idValue = document.getElementById('jac-id').value;
@@ -328,26 +358,16 @@ const handleJacSubmit = (e) => {
   const additionInput = parseInt(document.getElementById('jac-addition').value, 10) || 0;
   const projectsInput = parseInt(document.getElementById('jac-projects').value, 10);
   
-  if (idValue) {
-    const id = parseInt(idValue, 10);
-    const index = mockJACs.findIndex(j => j.id === id);
-    if (index !== -1) {
-      mockJACs[index].name = nameInput;
-      mockJACs[index].assigned = budgetInput;
-      mockJACs[index].addition = additionInput;
-      mockJACs[index].projects = projectsInput;
-    }
-  } else {
-    mockJACs.push({
-      id: Date.now(),
+  await fetchData('jacs', 'POST', {
+      id: idValue ? parseInt(idValue, 10) : null,
       name: nameInput,
       year: currentYear,
       assigned: budgetInput,
       addition: additionInput,
-      paid: 0,
       projects: projectsInput
-    });
-  }
+  });
+  
+  await loadDataFromAPI();
   
   // Limpiar, resetear estados y cerrar
   document.getElementById('jac-id').value = '';
@@ -355,8 +375,6 @@ const handleJacSubmit = (e) => {
   document.getElementById('form-jac').reset();
   
   closeModal('modal-jac');
-  
-  // Actualizar todo el dashboard de inmediato
   renderDashboard();
 };
 
@@ -422,17 +440,18 @@ const editDirectoryJac = (id) => {
   openModal('modal-directory-jac');
 };
 
-const deleteDirectoryJac = (id) => {
+const deleteDirectoryJac = async (id) => {
   const index = mockDirectoryJACs.findIndex(j => j.id === id);
   if (index === -1) return;
   
   if (confirm(`¿Estás seguro de que deseas eliminar "${mockDirectoryJACs[index].name}" del directorio general?`)) {
-    mockDirectoryJACs.splice(index, 1);
+    await fetchData('directory_jacs', 'DELETE', {id});
+    await loadDataFromAPI();
     renderDirectory();
   }
 };
 
-const handleDirectorySubmit = (e) => {
+const handleDirectorySubmit = async (e) => {
   e.preventDefault();
   
   const id = document.getElementById('dir-jac-id').value;
@@ -441,23 +460,12 @@ const handleDirectorySubmit = (e) => {
   const president = document.getElementById('dir-jac-president').value;
   const phone = document.getElementById('dir-jac-phone').value;
   
-  if (id) {
-    const index = mockDirectoryJACs.findIndex(j => j.id === parseInt(id, 10));
-    if (index !== -1) {
-      mockDirectoryJACs[index].name = name;
-      mockDirectoryJACs[index].zone = zone;
-      mockDirectoryJACs[index].president = president;
-      mockDirectoryJACs[index].phone = phone;
-    }
-  } else {
-    mockDirectoryJACs.push({
-      id: Date.now(),
-      name,
-      zone,
-      president,
-      phone
-    });
-  }
+  await fetchData('directory_jacs', 'POST', {
+      id: id ? parseInt(id, 10) : null,
+      name, zone, president, phone
+  });
+  
+  await loadDataFromAPI();
   
   document.getElementById('dir-jac-id').value = '';
   document.getElementById('modal-directory-title').textContent = 'Registrar Información de JAC';
@@ -595,7 +603,7 @@ const editProject = (id) => {
   openModal('modal-project');
 };
 
-const deleteProject = () => {
+const deleteProject = async () => {
   const idValue = document.getElementById('proj-id').value;
   if (!idValue) return;
   
@@ -604,16 +612,18 @@ const deleteProject = () => {
   if (index === -1) return;
   
   if (confirm(`¿Estás seguro de que deseas eliminar el proyecto "${mockProjects[index].title}"?`)) {
-    mockProjects.splice(index, 1);
+    await fetchData('projects', 'DELETE', {id});
+    await loadDataFromAPI();
     closeModal('modal-project');
     renderProjects();
   }
 };
 
-const handleProjectSubmit = (e) => {
+const handleProjectSubmit = async (e) => {
   e.preventDefault();
   
-  const id = document.getElementById('proj-id').value;
+  const idValue = document.getElementById('proj-id').value;
+  const id = idValue ? parseInt(idValue, 10) : null;
   const year = parseInt(document.getElementById('proj-year').value, 10);
   const jacId = parseInt(document.getElementById('proj-jac').value, 10);
   const title = document.getElementById('proj-title').value;
@@ -623,35 +633,18 @@ const handleProjectSubmit = (e) => {
   const addition = hasAddition ? (parseInt(document.getElementById('proj-addition').value, 10) || 0) : 0;
   const description = document.getElementById('proj-desc').value;
   
-  if (id) {
-    const index = mockProjects.findIndex(p => p.id === parseInt(id, 10));
-    if (index !== -1) {
-      mockProjects[index].year = year;
-      mockProjects[index].jacId = jacId;
-      mockProjects[index].title = title;
-      mockProjects[index].status = status;
-      mockProjects[index].budget = budget;
-      mockProjects[index].hasAddition = hasAddition;
-      mockProjects[index].addition = addition;
-      mockProjects[index].description = description;
-    }
-  } else {
-    mockProjects.push({
-      id: Date.now(),
-      jacId,
-      title,
-      status,
-      budget,
-      hasAddition,
-      addition,
-      description,
-      year: year,
-      documents: [],
-      photos: [],
-      notes: []
-    });
-  }
+  // Si estamos editando, mantenemos los assets, si no, arrays vacíos
+  const existing = mockProjects.find(p => p.id === id);
+  const docs = existing ? existing.documents : [];
+  const photos = existing ? existing.photos : [];
+  const notes = existing ? existing.notes : [];
   
+  await fetchData('projects', 'POST', {
+      id, year, jacId, title, status, budget, hasAddition, addition, description,
+      documents: docs, photos: photos, notes: notes
+  });
+  
+  await loadDataFromAPI();
   closeModal('modal-project');
   renderProjects();
 };
@@ -669,7 +662,7 @@ window.switchProjectTab = (tabId) => {
   if(btn) btn.classList.add('active');
 };
 
-const handleMockDocUpload = (e) => {
+const handleMockDocUpload = async (e) => {
   const file = e.target.files[0];
   if(!file) return;
   const projId = parseInt(document.getElementById('proj-id').value, 10);
@@ -680,27 +673,32 @@ const handleMockDocUpload = (e) => {
        name: file.name,
        date: new Date().toISOString().split('T')[0]
     });
-    renderProjectAssets(proj);
+    // Update API immediately for documents
+    await fetchData('projects', 'POST', proj);
+    await loadDataFromAPI(); 
+    renderProjectAssets(mockProjects.find(p => p.id === projId));
   }
 };
 
-const handleMockPhotoUpload = (e) => {
+const handleMockPhotoUpload = async (e) => {
   const file = e.target.files[0];
   if(!file) return;
   const projId = parseInt(document.getElementById('proj-id').value, 10);
   const proj = mockProjects.find(p => p.id === projId);
   if(proj) {
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       if(!proj.photos) proj.photos = [];
       proj.photos.push(evt.target.result);
-      renderProjectAssets(proj);
+      await fetchData('projects', 'POST', proj);
+      await loadDataFromAPI();
+      renderProjectAssets(mockProjects.find(p => p.id === projId));
     };
     reader.readAsDataURL(file);
   }
 };
 
-const handleMockNoteAdd = () => {
+const handleMockNoteAdd = async () => {
   const input = document.getElementById('proj-note-input');
   const txt = input.value.trim();
   if(!txt) return;
@@ -717,7 +715,9 @@ const handleMockNoteAdd = () => {
        date: new Date().toISOString().split('T')[0]
     });
     input.value = '';
-    renderProjectAssets(proj);
+    await fetchData('projects', 'POST', proj);
+    await loadDataFromAPI();
+    renderProjectAssets(mockProjects.find(p => p.id === projId));
   }
 };
 
@@ -832,7 +832,7 @@ const openModalPayment = () => {
   openModal('modal-payment');
 };
 
-const handlePaymentSubmit = (e) => {
+const handlePaymentSubmit = async (e) => {
   e.preventDefault();
   
   const jacId = parseInt(document.getElementById('pay-jac').value, 10);
@@ -840,8 +840,7 @@ const handlePaymentSubmit = (e) => {
   const dateStr = document.getElementById('pay-date').value;
   const desc = document.getElementById('pay-desc').value;
   
-  mockPayments.push({
-    id: Date.now(),
+  await fetchData('payments', 'POST', {
     jacId: jacId,
     amount: amount,
     date: dateStr,
@@ -849,10 +848,7 @@ const handlePaymentSubmit = (e) => {
     year: currentYear
   });
   
-  const jacIndex = mockJACs.findIndex(j => j.id === jacId);
-  if (jacIndex !== -1) {
-    mockJACs[jacIndex].paid += amount;
-  }
+  await loadDataFromAPI();
   
   closeModal('modal-payment');
   renderPayments();
@@ -908,27 +904,19 @@ const openModalYear = (year) => {
   openModal('modal-year');
 };
 
-const handleYearSubmit = (e) => {
+const handleYearSubmit = async (e) => {
   e.preventDefault();
   const yearInput = parseInt(document.getElementById('cfg-year').value, 10);
   const initialInput = parseInt(document.getElementById('cfg-initial').value, 10);
   const additionInput = parseInt(document.getElementById('cfg-addition').value, 10) || 0;
   
-  const existing = globalBudgets.find(b => b.year === yearInput);
-  
-  if (existing) {
-    existing.initialBudget = initialInput;
-    existing.addition = additionInput;
-  } else {
-    globalBudgets.push({
+  await fetchData('global_budgets', 'POST', {
       year: yearInput,
       initialBudget: initialInput,
-      addition: additionInput,
-      superavit: 0
-    });
-    globalBudgets.sort((a,b) => a.year - b.year);
-  }
+      addition: additionInput
+  });
   
+  await loadDataFromAPI();
   closeModal('modal-year');
   
   // Reconstruir visuales clave
@@ -985,7 +973,7 @@ const openModalUser = (id) => {
   openModal('modal-user');
 };
 
-const handleUserSubmit = (e) => {
+const handleUserSubmit = async (e) => {
   e.preventDefault();
   const idStr = document.getElementById('user-id').value;
   const name = document.getElementById('user-name').value;
@@ -993,20 +981,12 @@ const handleUserSubmit = (e) => {
   const password = document.getElementById('user-pass').value;
   const role = document.getElementById('user-role').value;
   
-  if (idStr) {
-    const idx = mockUsers.findIndex(u => u.id === parseInt(idStr, 10));
-    if (idx !== -1) {
-      mockUsers[idx].name = name;
-      mockUsers[idx].username = username;
-      mockUsers[idx].password = password;
-      mockUsers[idx].role = role;
-    }
-  } else {
-    mockUsers.push({
-      id: Date.now(),
+  await fetchData('users', 'POST', {
+      id: idStr ? parseInt(idStr, 10) : null,
       name, username, password, role
-    });
-  }
+  });
+  
+  await loadDataFromAPI();
   
   closeModal('modal-user');
   renderConfigUsers();
@@ -1033,17 +1013,22 @@ const applyPermissions = () => {
 };
 
 // Inicialización
-const initApp = () => {
+const initApp = async () => {
   applyPermissions();
   if (window.innerWidth <= 768) {
     document.getElementById('sidebar').classList.add('collapsed');
     document.querySelector('.main-content').classList.add('expanded');
   }
+  
+  // Cargar datos reales
+  await loadDataFromAPI();
+  
   renderYearSelector();
   renderDashboard();
   renderConfigUsers();
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-  checkAuth();
+document.addEventListener('DOMContentLoaded', async () => {
+  // Verificamos auth sin cargar datos (o carga silenciosa) 
+  await checkAuth();
 });
