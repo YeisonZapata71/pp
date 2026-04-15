@@ -41,6 +41,7 @@ const loadDataFromAPI = async () => {
     } catch(e) { console.error("Error cargando DB:", e); }
 };
 
+
 // -----------------------------------------
 // LÓGICA DE AUTENTICACIÓN
 // -----------------------------------------
@@ -61,31 +62,46 @@ const checkAuth = async () => {
 
 const handleLogin = async (e) => {
   e.preventDefault();
+  const btn = e.target.querySelector('button[type="submit"]');
+  const orgText = btn.textContent;
+  
   const user = document.getElementById('login-user').value;
   const pass = document.getElementById('login-pass').value;
   
-  const res = await fetchData('login', 'POST', {username: user, password: pass});
-  
-  if (res.status === 'success' && res.user) {
-    sessionStorage.setItem('pp_logged_in', 'true');
-    sessionStorage.setItem('pp_role', res.user.role || 'gestor');
-    sessionStorage.setItem('pp_user_name', res.user.name);
-    
-    const appContainer = document.getElementById('app-container');
-    const loginView = document.getElementById('login-view');
-    
-    appContainer.style.opacity = '0';
-    appContainer.style.display = 'flex';
-    
-    setTimeout(async () => {
-      appContainer.style.transition = 'opacity 0.6s ease';
-      appContainer.style.opacity = '1';
-      loginView.classList.add('hidden');
-      await initApp();
-    }, 100);
-    
-  } else {
-    alert('Credenciales incorrectas.');
+  if (!user || !pass) return;
+
+  btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Iniciando...';
+  btn.disabled = true;
+  if(window.lucide) lucide.createIcons();
+
+  try {
+      const res = await fetchData('login', 'POST', {username: user, password: pass});
+      
+      if (res.status === 'success' && res.user) {
+        sessionStorage.setItem('pp_logged_in', 'true');
+        sessionStorage.setItem('pp_role', res.user.role || 'gestor');
+        sessionStorage.setItem('pp_user_name', res.user.name);
+        
+        const appContainer = document.getElementById('app-container');
+        const loginView = document.getElementById('login-view');
+        
+        appContainer.style.opacity = '0';
+        appContainer.style.display = 'flex';
+        
+        await initApp();
+        
+        appContainer.style.transition = 'opacity 0.6s ease';
+        appContainer.style.opacity = '1';
+        loginView.classList.add('hidden');
+        
+      } else {
+        alert(res.message || 'Credenciales incorrectas o error de conexión.');
+      }
+  } catch (error) {
+      alert("Error crítico durante el inicio de sesión: " + error.message);
+  } finally {
+      btn.innerHTML = orgText;
+      btn.disabled = false;
   }
 };
 
