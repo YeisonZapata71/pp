@@ -1,5 +1,4 @@
-CREATE DATABASE IF NOT EXISTS presupuestos;
-USE presupuestos;
+
 
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
