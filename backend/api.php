@@ -59,7 +59,7 @@ switch ($endpoint) {
             $sql = "INSERT INTO global_budgets (year, initial_budget, addition, superavit) VALUES (?, ?, ?, ?) 
                     ON DUPLICATE KEY UPDATE initial_budget=?, addition=?, superavit=?";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("iiiiiii", $year, $initial, $addition, $superavit, $initial, $addition, $superavit);
+            $stmt->bind_param("issssss", $year, $initial, $addition, $superavit, $initial, $addition, $superavit);
             $stmt->execute();
             echo json_encode(["status" => "success"]);
         }
@@ -78,10 +78,10 @@ switch ($endpoint) {
             
             if ($id) {
                 $stmt = $conn->prepare("UPDATE jacs SET name=?, assigned=?, addition=?, projects=? WHERE id=?");
-                $stmt->bind_param("siiii", $name, $assigned, $addition, $projects, $id);
+                $stmt->bind_param("sssii", $name, $assigned, $addition, $projects, $id);
             } else {
                 $stmt = $conn->prepare("INSERT INTO jacs (name, year, assigned, addition, projects) VALUES (?, ?, ?, ?, ?)");
-                $stmt->bind_param("siiii", $name, $year, $assigned, $addition, $projects);
+                $stmt->bind_param("sissi", $name, $year, $assigned, $addition, $projects);
             }
             $stmt->execute();
             echo json_encode(["status" => "success"]);
@@ -134,10 +134,10 @@ switch ($endpoint) {
             
             if ($id) {
                 $stmt = $conn->prepare("UPDATE projects SET jac_id=?, year=?, title=?, description=?, status=?, budget=?, has_addition=?, addition=?, documents_json=?, photos_json=?, notes_json=? WHERE id=?");
-                $stmt->bind_param("iissssiiissi", $input['jacId'], $input['year'], $input['title'], $input['description'], $input['status'], $input['budget'], $has_add, $input['addition'], $docs, $photos, $notes, $id);
+                $stmt->bind_param("iisssssissii", $input['jacId'], $input['year'], $input['title'], $input['description'], $input['status'], $input['budget'], $has_add, $input['addition'], $docs, $photos, $notes, $id);
             } else {
                 $stmt = $conn->prepare("INSERT INTO projects (jac_id, year, title, description, status, budget, has_addition, addition, documents_json, photos_json, notes_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("iissssiiiss", $input['jacId'], $input['year'], $input['title'], $input['description'], $input['status'], $input['budget'], $has_add, $input['addition'], $docs, $photos, $notes);
+                $stmt->bind_param("iisssssisss", $input['jacId'], $input['year'], $input['title'], $input['description'], $input['status'], $input['budget'], $has_add, $input['addition'], $docs, $photos, $notes);
             }
             $stmt->execute();
             echo json_encode(["status" => "success", "id" => $id ?? $conn->insert_id]);
@@ -153,12 +153,12 @@ switch ($endpoint) {
             echo json_encode(fetchAll($conn, "SELECT id, jac_id as jacId, year, amount, date, description FROM payments"));
         } elseif ($method === 'POST') {
             $stmt = $conn->prepare("INSERT INTO payments (jac_id, amount, date, description, year) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("iissi", $input['jacId'], $input['amount'], $input['date'], $input['description'], $input['year']);
+            $stmt->bind_param("isssi", $input['jacId'], $input['amount'], $input['date'], $input['description'], $input['year']);
             $stmt->execute();
             
             // Actualizar 'paid' en la tabla jacs correspondiente
             $stmt2 = $conn->prepare("UPDATE jacs SET paid = paid + ? WHERE id = ?");
-            $stmt2->bind_param("ii", $input['amount'], $input['jacId']);
+            $stmt2->bind_param("si", $input['amount'], $input['jacId']);
             $stmt2->execute();
             
             echo json_encode(["status" => "success"]);

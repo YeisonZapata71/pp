@@ -14,8 +14,20 @@ const API_URL = 'backend/api.php?endpoint=';
 const fetchData = async (endpoint, method="GET", body=null) => {
     const opts = { method, headers: {'Content-Type': 'application/json'} };
     if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(API_URL + endpoint, opts);
-    return await res.json();
+    try {
+        const res = await fetch(API_URL + endpoint, opts);
+        const text = await res.text();
+        try {
+            return JSON.parse(text);
+        } catch(e) {
+            console.error("Invalid JSON from server:", text);
+            alert("Error en Servidor: " + text.substring(0,100));
+            return { status: "error" };
+        }
+    } catch(e) {
+        alert("Error de Conexión: " + e.message);
+        return { status: "error" };
+    }
 };
 
 const loadDataFromAPI = async () => {
