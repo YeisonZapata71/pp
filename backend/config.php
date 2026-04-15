@@ -7,11 +7,16 @@ define('DB_PASS', 'u738685852_ppGira2026**');
 define('DB_NAME', 'u738685852_pp'); 
 
 function getDB() {
-    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-    if ($conn->connect_error) {
-        die(json_encode(["error" => "Error de conexión a la base de datos: " . $conn->connect_error]));
+    try {
+        mysqli_report(MYSQLI_REPORT_STRICT | MYSQLI_REPORT_ERROR);
+        $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+        $conn->set_charset("utf8mb4");
+        return $conn;
+    } catch (\Throwable $e) {
+        die(json_encode([
+            "status" => "error", 
+            "message" => "Error crítico de Base de Datos Hostinger: Verifica el usuario/contraseña. (" . $e->getMessage() . ")"
+        ]));
     }
-    $conn->set_charset("utf8mb4");
-    return $conn;
 }
 ?>
