@@ -299,11 +299,11 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="jac-budget">Presupuesto Inicial ($ COP)</label>
-                    <input type="number" id="jac-budget" class="form-control" placeholder="Ej. 100000000" min="1" required>
+                    <input type="text" id="jac-budget" class="form-control" placeholder="Ej. 100.000.000" required oninput="formatInputNumber(this)">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="jac-addition">Adiciones Presupuestales ($ COP)</label>
-                    <input type="number" id="jac-addition" class="form-control" value="0" min="0">
+                    <input type="text" id="jac-addition" class="form-control" value="0" oninput="formatInputNumber(this)">
                     <small style="color:var(--text-muted); font-size:0.75rem; margin-top:0.25rem; display:block">
                         El costo inicial + adiciones se descuentan del fondo.
                     </small>
@@ -397,7 +397,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="proj-budget">Presupuesto Inicial ($ COP)</label>
-                        <input type="number" id="proj-budget" class="form-control" min="1" required>
+                        <input type="text" id="proj-budget" class="form-control" required oninput="formatInputNumber(this)">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="proj-has-addition">¿Hubo Adición Presupuestal?</label>
@@ -408,7 +408,7 @@
                     </div>
                     <div class="form-group" id="proj-addition-group" style="display: none;">
                         <label class="form-label" for="proj-addition">Valor de la Adición ($ COP)</label>
-                        <input type="number" id="proj-addition" class="form-control" value="0" min="0">
+                        <input type="text" id="proj-addition" class="form-control" value="0" oninput="formatInputNumber(this)">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="proj-desc">Breve Descripción</label>
@@ -470,7 +470,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="pay-amount">Monto a Girar / Desembolsar ($ COP)</label>
-                    <input type="number" id="pay-amount" class="form-control" min="1" required>
+                    <input type="text" id="pay-amount" class="form-control" required oninput="formatInputNumber(this)">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="pay-date">Fecha del Movimiento</label>
@@ -502,15 +502,15 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="cfg-initial">Aprobación de Fondo Fijo Inicial ($ COP)</label>
-                    <input type="number" id="cfg-initial" class="form-control" min="0" required>
+                    <input type="text" id="cfg-initial" class="form-control" required oninput="formatInputNumber(this)">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="cfg-addition">Aprobación de Adiciones ($ COP)</label>
-                    <input type="number" id="cfg-addition" class="form-control" value="0" min="0">
+                    <input type="text" id="cfg-addition" class="form-control" value="0" oninput="formatInputNumber(this)">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="cfg-superavit">Superávit (Arrastre Anterior) ($ COP)</label>
-                    <input type="number" id="cfg-superavit" class="form-control" value="0" min="0">
+                    <input type="text" id="cfg-superavit" class="form-control" value="0" oninput="formatInputNumber(this)">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('modal-year')">Cancelar</button>

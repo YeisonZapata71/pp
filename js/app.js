@@ -129,6 +129,18 @@ const getPercentage = (part, total) => {
   return Math.round((part / total) * 100);
 };
 
+// Formateador de inputs monetarios
+const formatInputNumber = (input) => {
+    let value = input.value.replace(/\D/g, "");
+    if (value === "") { input.value = ""; return; }
+    input.value = new Intl.NumberFormat('es-CO').format(value);
+};
+
+const parseNumber = (str) => {
+    if (typeof str !== 'string') return str || 0;
+    return parseInt(str.replace(/\D/g, ""), 10) || 0;
+};
+
 // Renderizar Selector de Años
 const renderYearSelector = () => {
   const container = document.getElementById('year-selector-container');
@@ -316,8 +328,8 @@ const editJac = (id) => {
   
   document.getElementById('jac-id').value = jac.id;
   document.getElementById('jac-name').value = jac.name;
-  document.getElementById('jac-budget').value = jac.assigned;
-  document.getElementById('jac-addition').value = jac.addition || 0;
+  document.getElementById('jac-budget').value = new Intl.NumberFormat('es-CO').format(jac.assigned);
+  document.getElementById('jac-addition').value = new Intl.NumberFormat('es-CO').format(jac.addition || 0);
   document.getElementById('jac-projects').value = jac.projects;
   
   openModal('modal-jac');
@@ -339,8 +351,8 @@ const handleJacSubmit = async (e) => {
   
   const idValue = document.getElementById('jac-id').value;
   const nameInput = document.getElementById('jac-name').value;
-  const budgetInput = parseInt(document.getElementById('jac-budget').value, 10);
-  const additionInput = parseInt(document.getElementById('jac-addition').value, 10) || 0;
+  const budgetInput = parseNumber(document.getElementById('jac-budget').value);
+  const additionInput = parseNumber(document.getElementById('jac-addition').value);
   const projectsInput = parseInt(document.getElementById('jac-projects').value, 10);
   
   await fetchData('jacs', 'POST', {
@@ -570,10 +582,10 @@ const editProject = (id) => {
   document.getElementById('proj-jac').value = proj.jacId;
   document.getElementById('proj-title').value = proj.title;
   document.getElementById('proj-status').value = proj.status;
-  document.getElementById('proj-budget').value = proj.budget;
+  document.getElementById('proj-budget').value = new Intl.NumberFormat('es-CO').format(proj.budget);
   document.getElementById('proj-has-addition').value = proj.hasAddition ? 'si' : 'no';
   document.getElementById('proj-addition-group').style.display = proj.hasAddition ? 'block' : 'none';
-  document.getElementById('proj-addition').value = proj.addition || 0;
+  document.getElementById('proj-addition').value = new Intl.NumberFormat('es-CO').format(proj.addition || 0);
   document.getElementById('proj-desc').value = proj.description;
   
   document.getElementById('tab-btn-docs').style.display = 'block';
@@ -613,9 +625,9 @@ const handleProjectSubmit = async (e) => {
   const jacId = parseInt(document.getElementById('proj-jac').value, 10);
   const title = document.getElementById('proj-title').value;
   const status = document.getElementById('proj-status').value;
-  const budget = parseInt(document.getElementById('proj-budget').value, 10);
+  const budget = parseNumber(document.getElementById('proj-budget').value);
   const hasAddition = document.getElementById('proj-has-addition').value === 'si';
-  const addition = hasAddition ? (parseInt(document.getElementById('proj-addition').value, 10) || 0) : 0;
+  const addition = hasAddition ? parseNumber(document.getElementById('proj-addition').value) : 0;
   const description = document.getElementById('proj-desc').value;
   
   // Si estamos editando, mantenemos los assets, si no, arrays vacíos
@@ -821,7 +833,7 @@ const handlePaymentSubmit = async (e) => {
   e.preventDefault();
   
   const jacId = parseInt(document.getElementById('pay-jac').value, 10);
-  const amount = parseInt(document.getElementById('pay-amount').value, 10);
+  const amount = parseNumber(document.getElementById('pay-amount').value);
   const dateStr = document.getElementById('pay-date').value;
   const desc = document.getElementById('pay-desc').value;
   
@@ -886,9 +898,9 @@ const openModalYear = (year) => {
     document.getElementById('modal-year-title').textContent = `Editar Presupuesto Base ${year}`;
     document.getElementById('cfg-year').value = b.year;
     document.getElementById('cfg-year').readOnly = true;
-    document.getElementById('cfg-initial').value = b.initialBudget;
-    document.getElementById('cfg-addition').value = b.addition || 0;
-    document.getElementById('cfg-superavit').value = b.superavit || 0;
+    document.getElementById('cfg-initial').value = new Intl.NumberFormat('es-CO').format(b.initialBudget);
+    document.getElementById('cfg-addition').value = new Intl.NumberFormat('es-CO').format(b.addition || 0);
+    document.getElementById('cfg-superavit').value = new Intl.NumberFormat('es-CO').format(b.superavit || 0);
   } else {
     document.getElementById('modal-year-title').textContent = 'Inaugurar Año Presupuestal';
     document.getElementById('cfg-year').readOnly = false;
@@ -900,9 +912,9 @@ const openModalYear = (year) => {
 const handleYearSubmit = async (e) => {
   e.preventDefault();
   const yearInput = parseInt(document.getElementById('cfg-year').value, 10);
-  const initialInput = parseInt(document.getElementById('cfg-initial').value, 10);
-  const additionInput = parseInt(document.getElementById('cfg-addition').value, 10) || 0;
-  const superavitInput = parseInt(document.getElementById('cfg-superavit').value, 10) || 0;
+  const initialInput = parseNumber(document.getElementById('cfg-initial').value);
+  const additionInput = parseNumber(document.getElementById('cfg-addition').value);
+  const superavitInput = parseNumber(document.getElementById('cfg-superavit').value);
   
   await fetchData('global_budgets', 'POST', {
       year: yearInput,
