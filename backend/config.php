@@ -3,7 +3,7 @@
 
 define('DB_HOST', 'localhost');
 define('DB_USER', 'u738685852_userpp'); 
-define('DB_PASS', 'u738685852_ppGira2026**');     
+define('DB_PASS', 'Gira2026**');     
 define('DB_NAME', 'u738685852_pp'); 
 
 function getDB() {
