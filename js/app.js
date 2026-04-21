@@ -147,7 +147,8 @@ const formatCurrency = (amount) => {
   return new Intl.NumberFormat('es-CO', { 
     style: 'currency', 
     currency: 'COP', 
-    maximumFractionDigits: 0 
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2 
   }).format(amount);
 };
 
@@ -159,14 +160,31 @@ const getPercentage = (part, total) => {
 
 // Formateador de inputs monetarios
 const formatInputNumber = (input) => {
-    let value = input.value.replace(/\D/g, "");
-    if (value === "") { input.value = ""; return; }
-    input.value = new Intl.NumberFormat('es-CO').format(value);
+    let val = input.value.replace(/[^\d,]/g, "");
+    if (val === "") { input.value = ""; return; }
+    let parts = val.split(",");
+    if (parts.length > 2) {
+        val = parts[0] + "," + parts.slice(1).join("");
+        parts = val.split(",");
+    }
+    let intPart = parts[0];
+    if (intPart !== "") {
+        intPart = new Intl.NumberFormat('es-CO').format(parseInt(intPart, 10));
+    }
+    if (parts.length > 1) {
+        let decPart = parts[1].substring(0, 2);
+        input.value = intPart + "," + decPart;
+    } else {
+        input.value = intPart;
+    }
 };
 
 const parseNumber = (str) => {
-    if (typeof str !== 'string') return str || 0;
-    return parseInt(str.replace(/\D/g, ""), 10) || 0;
+    if (typeof str !== 'string' && typeof str !== 'number') return 0;
+    if (typeof str === 'number') return str;
+    let clean = str.replace(/\./g, "").replace(",", ".");
+    clean = clean.replace(/[^\d.-]/g, "");
+    return parseFloat(clean) || 0;
 };
 
 // Renderizar Selector de Años
@@ -201,7 +219,7 @@ const renderDashboard = () => {
   
   const jacsOfYear = mockJACs.filter(j => j.year === currentYear);
   
-  const superavit = parseInt(yearData.superavit, 10) || 0;
+  const superavit = parseFloat(yearData.superavit) || 0;
   const totalBudget = yearData.initialBudget + (yearData.addition || 0) + superavit;
   
   const projectsOfYear = mockProjects.filter(p => p.year === currentYear);
