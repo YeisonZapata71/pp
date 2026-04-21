@@ -554,21 +554,17 @@ const renderDirectory = () => {
         
         <div style="background-color: #F9FAFB; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem; border: 1px solid #E5E7EB; flex-grow:1;">
           <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
-             <div style="background: white; padding: 0.5rem; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color:var(--primary); display:flex; align-items:center;">
-               <i data-lucide="user" style="width:18px; height:18px;"></i>
-             </div>
+             <i data-lucide="user" style="width:20px; height:20px; color:var(--primary);"></i>
              <div>
-               <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Presidente / Líder</div>
+               <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Presidente / Líder</div>
                <div style="font-size:0.95rem; font-weight:600; color:var(--text-main);">${jac.president}</div>
              </div>
           </div>
           
           <div style="display:flex; align-items:center; gap:0.75rem;">
-             <div style="background: white; padding: 0.5rem; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color:var(--primary); display:flex; align-items:center;">
-               <i data-lucide="phone" style="width:18px; height:18px;"></i>
-             </div>
+             <i data-lucide="phone" style="width:20px; height:20px; color:var(--primary);"></i>
              <div>
-               <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Teléfono de Contacto</div>
+               <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Teléfono de Contacto</div>
                <div style="font-size:0.95rem; font-weight:600; color:var(--text-main);">${jac.phone}</div>
              </div>
           </div>
