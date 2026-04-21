@@ -920,8 +920,8 @@ const renderConfig = () => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><strong style="font-size:1.1rem; color:var(--primary)">${b.year}</strong></td>
-      <td>${formatCurrency(b.initialBudget)}</td>
-      <td>${formatCurrency((b.addition || 0) + superavit)}</td>
+      <td>${formatCurrency(parseFloat(b.initialBudget) || 0)}</td>
+      <td>${formatCurrency((parseFloat(b.addition) || 0) + superavit)}</td>
       <td style="color:var(--secondary); font-weight:600;">${formatCurrency(total)}</td>
       <td style="color:var(--danger)">${formatCurrency(assignedToProjects)}</td>
       <td style="color:var(--success); font-weight:700;">${formatCurrency(remaining)}</td>
