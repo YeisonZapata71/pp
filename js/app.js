@@ -220,13 +220,13 @@ const renderDashboard = () => {
   const jacsOfYear = mockJACs.filter(j => j.year === currentYear);
   
   const superavit = parseFloat(yearData.superavit) || 0;
-  const totalBudget = yearData.initialBudget + (yearData.addition || 0) + superavit;
+  const totalBudget = (parseFloat(yearData.initialBudget) || 0) + (parseFloat(yearData.addition) || 0) + superavit;
   
   const projectsOfYear = mockProjects.filter(p => p.year === currentYear);
-  const totalAssignedToProjects = projectsOfYear.reduce((sum, p) => sum + (p.budget + (p.hasAddition ? p.addition : 0)), 0);
+  const totalAssignedToProjects = projectsOfYear.reduce((sum, p) => sum + ((parseFloat(p.budget) || 0) + (p.hasAddition ? (parseFloat(p.addition) || 0) : 0)), 0);
   
   const totalAvailable = totalBudget - totalAssignedToProjects;
-  const totalPaid = jacsOfYear.reduce((sum, jac) => sum + jac.paid, 0);
+  const totalPaid = jacsOfYear.reduce((sum, jac) => sum + (parseFloat(jac.paid) || 0), 0);
   
   // Limpiar contenedores
   statsContainer.innerHTML = '';
@@ -268,8 +268,8 @@ const renderDashboard = () => {
   }
   
   jacsOfYear.forEach(jac => {
-    const totalJac = jac.assigned + (jac.addition || 0);
-    const progress = totalJac > 0 ? (jac.paid / totalJac) * 100 : 0;
+    const totalJac = (parseFloat(jac.assigned) || 0) + (parseFloat(jac.addition) || 0);
+    const progress = totalJac > 0 ? ((parseFloat(jac.paid) || 0) / totalJac) * 100 : 0;
     
     const card = document.createElement('div');
     card.className = 'glass-panel jac-card';
@@ -291,7 +291,7 @@ const renderDashboard = () => {
         </div>
         <div class="budget-item">
           <span class="budget-label">Pagado</span>
-          <span class="budget-amount">${formatCurrency(jac.paid)}</span>
+          <span class="budget-amount">${formatCurrency(parseFloat(jac.paid) || 0)}</span>
         </div>
       </div>
       <div class="progress-container">
@@ -374,8 +374,8 @@ const editJac = (id) => {
   
   document.getElementById('jac-id').value = jac.id;
   document.getElementById('jac-name').value = jac.name;
-  document.getElementById('jac-budget').value = new Intl.NumberFormat('es-CO').format(jac.assigned);
-  document.getElementById('jac-addition').value = new Intl.NumberFormat('es-CO').format(jac.addition || 0);
+  document.getElementById('jac-budget').value = new Intl.NumberFormat('es-CO').format(parseFloat(jac.assigned) || 0);
+  document.getElementById('jac-addition').value = new Intl.NumberFormat('es-CO').format(parseFloat(jac.addition) || 0);
   document.getElementById('jac-projects').value = jac.projects;
   
   openModal('modal-jac');
@@ -544,8 +544,8 @@ const renderProjects = () => {
     card.className = `kanban-card status-${statusClass}`;
     card.onclick = () => editProject(proj.id);
     
-    const totalProjBudget = proj.budget + (proj.hasAddition ? (proj.addition || 0) : 0);
-    const additionSpan = (proj.hasAddition && proj.addition > 0) ? `<small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-top:2px;">+ ${formatCurrency(proj.addition)} (Adic.)</small>` : '';
+    const totalProjBudget = (parseFloat(proj.budget) || 0) + (proj.hasAddition ? (parseFloat(proj.addition) || 0) : 0);
+    const additionSpan = (proj.hasAddition && parseFloat(proj.addition) > 0) ? `<small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-top:2px;">+ ${formatCurrency(parseFloat(proj.addition))} (Adic.)</small>` : '';
 
     card.innerHTML = `
       <div class="kanban-card-title">${proj.title}</div>
@@ -628,10 +628,10 @@ const editProject = (id) => {
   document.getElementById('proj-jac').value = proj.jacId;
   document.getElementById('proj-title').value = proj.title;
   document.getElementById('proj-status').value = proj.status;
-  document.getElementById('proj-budget').value = new Intl.NumberFormat('es-CO').format(proj.budget);
+  document.getElementById('proj-budget').value = new Intl.NumberFormat('es-CO').format(parseFloat(proj.budget) || 0);
   document.getElementById('proj-has-addition').value = proj.hasAddition ? 'si' : 'no';
   document.getElementById('proj-addition-group').style.display = proj.hasAddition ? 'block' : 'none';
-  document.getElementById('proj-addition').value = new Intl.NumberFormat('es-CO').format(proj.addition || 0);
+  document.getElementById('proj-addition').value = new Intl.NumberFormat('es-CO').format(parseFloat(proj.addition) || 0);
   document.getElementById('proj-desc').value = proj.description;
   
   document.getElementById('tab-btn-docs').style.display = 'block';
