@@ -591,22 +591,28 @@ const renderDirectory = () => {
 };
 
 const editDirectoryJac = (id) => {
-  const jac = mockDirectoryJACs.find(j => j.id === id);
-  if (!jac) return;
+  const jac = mockDirectoryJACs.find(j => String(j.id) === String(id));
+  if (!jac) {
+      alert("No se encontró la información de esta JAC para editar.");
+      return;
+  }
   
   document.getElementById('dir-jac-id').value = jac.id;
   document.getElementById('dir-jac-name').value = jac.name;
   document.getElementById('dir-jac-zone').value = jac.zone;
-  document.getElementById('dir-jac-president').value = jac.president;
-  document.getElementById('dir-jac-phone').value = jac.phone;
+  document.getElementById('dir-jac-president').value = jac.president || '';
+  document.getElementById('dir-jac-phone').value = jac.phone || '';
   
   document.getElementById('modal-directory-title').textContent = 'Editar Información de JAC';
   openModal('modal-directory-jac');
 };
 
 const deleteDirectoryJac = async (id) => {
-  const index = mockDirectoryJACs.findIndex(j => j.id === id);
-  if (index === -1) return;
+  const index = mockDirectoryJACs.findIndex(j => String(j.id) === String(id));
+  if (index === -1) {
+      alert("No se encontró la JAC.");
+      return;
+  }
   
   if (confirm(`¿Estás seguro de que deseas eliminar "${mockDirectoryJACs[index].name}" del directorio general?`)) {
     await fetchData('directory_jacs', 'DELETE', {id});
