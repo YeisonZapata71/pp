@@ -370,94 +370,133 @@
                 <button class="modal-close" onclick="closeModal('modal-project')"><i data-lucide="x"></i></button>
             </div>
             
-            <div class="modal-tabs">
-                <button type="button" class="tab-btn active" id="tab-btn-general" onclick="switchProjectTab('ptab-general')">General</button>
-                <button type="button" class="tab-btn" id="tab-btn-docs" onclick="switchProjectTab('ptab-docs')" style="display:none">Documentos</button>
-                <button type="button" class="tab-btn" id="tab-btn-photos" onclick="switchProjectTab('ptab-photos')" style="display:none">Fotos</button>
-                <button type="button" class="tab-btn" id="tab-btn-notes" onclick="switchProjectTab('ptab-notes')" style="display:none">Bitácora</button>
-            </div>
+            <form id="form-project" onsubmit="handleProjectSubmit(event)">
+                <div class="modal-tabs">
+                    <button type="button" class="tab-btn active" id="tab-btn-general" onclick="switchProjectTab('ptab-general')">General</button>
+                    <button type="button" class="tab-btn" id="tab-btn-docs" onclick="switchProjectTab('ptab-docs')" style="display:none">Documentos</button>
+                    <button type="button" class="tab-btn" id="tab-btn-photos" onclick="switchProjectTab('ptab-photos')" style="display:none">Fotos de Avance</button>
+                    <button type="button" class="tab-btn" id="tab-btn-notes" onclick="switchProjectTab('ptab-notes')" style="display:none">Bitácora</button>
+                </div>
 
-            <!-- Tab General -->
-            <div id="ptab-general" class="tab-content active">
-                <form id="form-project" onsubmit="handleProjectSubmit(event)">
+                <!-- Tab General -->
+                <div id="ptab-general" class="tab-content active">
                     <input type="hidden" id="proj-id" value="">
-                    <div class="form-group">
-                        <label class="form-label" for="proj-year">Año del Presupuesto</label>
-                        <select id="proj-year" class="form-control" required onchange="populateJacSelect()"></select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="proj-jac">JAC Ejecutora</label>
-                        <select id="proj-jac" class="form-control" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="proj-title">Nombre del Proyecto</label>
-                        <input type="text" id="proj-title" class="form-control" placeholder="Ej. Construcción de..." required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="proj-status">Estado Actual</label>
-                        <select id="proj-status" class="form-control" required>
-                            <option value="Planificación">Planificación</option>
-                            <option value="En Ejecución">En Ejecución</option>
-                            <option value="Finalizado">Finalizado</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="proj-budget">Presupuesto Inicial ($ COP)</label>
-                        <input type="text" id="proj-budget" class="form-control" required oninput="formatInputNumber(this)">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="proj-has-addition">¿Hubo Adición Presupuestal?</label>
-                        <select id="proj-has-addition" class="form-control" required onchange="document.getElementById('proj-addition-group').style.display = this.value === 'si' ? 'block' : 'none'">
-                            <option value="no">No</option>
-                            <option value="si">Sí</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="proj-addition-group" style="display: none;">
-                        <label class="form-label" for="proj-addition">Valor de la Adición ($ COP)</label>
-                        <input type="text" id="proj-addition" class="form-control" value="0" oninput="formatInputNumber(this)">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="proj-desc">Breve Descripción</label>
-                        <textarea id="proj-desc" class="form-control" rows="3" placeholder="Detalles de la iniciativa..."></textarea>
-                    </div>
-                    <div class="modal-footer" style="justify-content: space-between; margin-top:2rem;">
-                        <button type="button" class="btn" id="btn-delete-proj" onclick="deleteProject()" style="display:none; color:var(--danger); border:1px solid var(--danger); background:transparent;"><i data-lucide="trash-2"></i> Eliminar</button>
-                        <div style="display:flex; gap:1rem; margin-left:auto;">
-                            <button type="button" class="btn btn-secondary" onclick="closeModal('modal-project')">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Guardar Información</button>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" for="proj-year">Año del Presupuesto</label>
+                            <select id="proj-year" class="form-control" required onchange="populateJacSelect()"></select>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" for="proj-jac">JAC Ejecutora</label>
+                            <select id="proj-jac" class="form-control" required></select>
+                        </div>
+                        
+                        <div class="form-group" style="margin:0; grid-column: 1 / -1;">
+                            <label class="form-label" for="proj-title">Nombre del Proyecto</label>
+                            <input type="text" id="proj-title" class="form-control" placeholder="Ej. Construcción de Placa Huella..." required>
+                        </div>
+                        
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" for="proj-status">Estado Actual</label>
+                            <select id="proj-status" class="form-control" required>
+                                <option value="Planificación">Planificación</option>
+                                <option value="En Ejecución">En Ejecución</option>
+                                <option value="Finalizado">Finalizado</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" for="proj-budget">Presupuesto Inicial ($ COP)</label>
+                            <input type="text" id="proj-budget" class="form-control" required oninput="formatInputNumber(this)">
+                        </div>
+                        
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" for="proj-has-addition">¿Hubo Adición Presupuestal?</label>
+                            <select id="proj-has-addition" class="form-control" required onchange="document.getElementById('proj-addition-group').style.display = this.value === 'si' ? 'block' : 'none'; if(this.value==='no') document.getElementById('proj-addition').value='0';">
+                                <option value="no">No</option>
+                                <option value="si">Sí</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="proj-addition-group" style="display: none; margin:0;">
+                            <label class="form-label" for="proj-addition">Valor de la Adición ($ COP)</label>
+                            <input type="text" id="proj-addition" class="form-control" value="0" oninput="formatInputNumber(this)">
                         </div>
                     </div>
-                </form>
-            </div>
-
-            <!-- Tab Documentos -->
-            <div id="ptab-docs" class="tab-content">
-                <div class="upload-zone" onclick="document.getElementById('proj-doc-upload').click()">
-                    <i data-lucide="file-up" style="width:32px; height:32px; margin-bottom:0.5rem; color:var(--text-muted)"></i>
-                    <p>Haz clic para subir Contratos o Actas (Simulación PDF)</p>
-                    <input type="file" id="proj-doc-upload" style="display:none" onchange="handleMockDocUpload(event)">
+                    
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label" for="proj-desc">Breve Descripción / Objeto</label>
+                        <textarea id="proj-desc" class="form-control" rows="3" placeholder="Detalles estratégicos de la iniciativa..."></textarea>
+                    </div>
                 </div>
-                <div class="doc-list" id="proj-docs-list"></div>
-            </div>
 
-            <!-- Tab Fotografías -->
-            <div id="ptab-photos" class="tab-content">
-                <div class="upload-zone" onclick="document.getElementById('proj-photo-upload').click()">
-                    <i data-lucide="image-plus" style="width:32px; height:32px; margin-bottom:0.5rem; color:var(--text-muted)"></i>
-                    <p>Haz clic para subir un Registro Fotográfico de Avance</p>
-                    <input type="file" id="proj-photo-upload" accept="image/*" style="display:none" onchange="handleMockPhotoUpload(event)">
+                <!-- Tab Documentos -->
+                <div id="ptab-docs" class="tab-content">
+                    <div class="alert alert-info" style="background:#EFF6FF; color:#1E40AF; padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.85rem; border:1px solid #BFDBFE;">
+                        <i data-lucide="info" style="width:16px; height:16px; margin-right:0.25rem; vertical-align:middle;"></i>
+                        <strong>Límites permitidos:</strong> Máximo 5 archivos PDF. Peso máximo de 2MB por archivo.
+                    </div>
+                    <div class="upload-zone" onclick="document.getElementById('proj-doc-upload').click()" style="border: 2px dashed var(--primary); padding: 2rem; border-radius: 8px; text-align: center; cursor: pointer; background: #f9fafb;">
+                        <i data-lucide="file-up" style="width:32px; height:32px; margin-bottom:0.5rem; color:var(--primary)"></i>
+                        <p style="color:var(--text-main); font-weight:500;">Haz clic aquí para cargar Contratos o Actas (.pdf)</p>
+                        <input type="file" id="proj-doc-upload" accept=".pdf" style="display:none" onchange="handleMockDocUpload(event)">
+                    </div>
+                    <div class="doc-list" id="proj-docs-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;"></div>
                 </div>
-                <div class="photo-grid" id="proj-photos-list"></div>
-            </div>
 
-            <!-- Tab Anotaciones (Bitácora) -->
-            <div id="ptab-notes" class="tab-content">
-                <div class="timeline-notes" id="proj-notes-list"></div>
-                <div style="display:flex; gap:0.5rem; margin-top:1rem;">
-                    <input type="text" id="proj-note-input" class="form-control" placeholder="Escribir nota de auditoría u observación...">
-                    <button type="button" class="btn btn-primary" onclick="handleMockNoteAdd()"><i data-lucide="send"></i> Guardar</button>
+                <!-- Tab Fotografías (Categorizadas) -->
+                <div id="ptab-photos" class="tab-content">
+                    <div class="alert alert-info" style="background:#EFF6FF; color:#1E40AF; padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.85rem; border:1px solid #BFDBFE;">
+                        <i data-lucide="info" style="width:16px; height:16px; margin-right:0.25rem; vertical-align:middle;"></i>
+                        <strong>Límites permitidos:</strong> Hasta 5 imágenes (Max 2MB c/u) por cada etapa del proyecto (Antes, Durante, Después).
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="margin-bottom:0.25rem;">Etapa del Proyecto</label>
+                            <select id="proj-photo-stage" class="form-control">
+                                <option value="antes">Evidencia del Antes</option>
+                                <option value="durante">Evidencia Durante (Ejecución)</option>
+                                <option value="despues">Evidencia del Después (Terminado)</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; align-items:flex-end;">
+                            <div class="btn btn-secondary" onclick="document.getElementById('proj-photo-upload').click()" style="width:100%; border: 2px dashed var(--primary); justify-content:center; background:#f9fafb;">
+                                <i data-lucide="image-plus" style="width:18px; height:18px;"></i> Elegir Foto
+                            </div>
+                            <input type="file" id="proj-photo-upload" accept="image/*" style="display:none" onchange="handleMockPhotoUpload(event)">
+                        </div>
+                    </div>
+                    
+                    <!-- Previsualización de las 3 zonas -->
+                    <div style="margin-top:2rem;">
+                        <h4 style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase;">Antes</h4>
+                        <div class="photo-grid" id="proj-photos-antes" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:1rem; margin-bottom:1rem; min-height:40px; border:1px dashed #e5e7eb; padding:0.5rem; border-radius:8px;"></div>
+                        
+                        <h4 style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase;">Durante</h4>
+                        <div class="photo-grid" id="proj-photos-durante" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:1rem; margin-bottom:1rem; min-height:40px; border:1px dashed #e5e7eb; padding:0.5rem; border-radius:8px;"></div>
+                        
+                        <h4 style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase;">Después</h4>
+                        <div class="photo-grid" id="proj-photos-despues" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:1rem; min-height:40px; border:1px dashed #e5e7eb; padding:0.5rem; border-radius:8px;"></div>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Tab Anotaciones (Bitácora) -->
+                <div id="ptab-notes" class="tab-content">
+                    <div class="timeline-notes" id="proj-notes-list" style="max-height: 250px; overflow-y:auto; padding-right:0.5rem;"></div>
+                    <div style="display:flex; gap:0.5rem; margin-top:1rem; border-top:1px solid #E5E7EB; padding-top:1rem;">
+                        <input type="text" id="proj-note-input" class="form-control" placeholder="Escribir nota de auditoría u observación..." style="flex-grow:1;">
+                        <button type="button" class="btn btn-primary" onclick="handleMockNoteAdd()"><i data-lucide="send"></i> Guardar Nota</button>
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="display:flex; justify-content: space-between; margin-top:2rem; border-top:1px solid #e5e7eb; padding-top:1rem;">
+                    <button type="button" class="btn" id="btn-delete-proj" onclick="deleteProject()" style="display:none; color:var(--danger); border:1px solid var(--danger); background:transparent;"><i data-lucide="trash-2"></i> Eliminar Proyecto</button>
+                    <div style="display:flex; gap:1rem; margin-left:auto;">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-project')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Guardar Información</button>
+                    </div>
+                </div>
+            </form>
             
         </div>
     </div>
@@ -563,7 +602,7 @@
     </div>
 
     <!-- Scripts de la Aplicación -->
-    <script src="js/app.js?v=18.0"></script>
+    <script src="js/app.js?v=19.0"></script>
     <script>
         // Inicializar Iconos
         lucide.createIcons();

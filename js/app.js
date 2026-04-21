@@ -831,10 +831,23 @@ window.switchProjectTab = (tabId) => {
 const handleMockDocUpload = async (e) => {
   const file = e.target.files[0];
   if(!file) return;
+  
+  if (file.size > 2 * 1024 * 1024) {
+      alert(`El archivo "${file.name}" supera el límite de 2MB permitidos. (Peso actual: ${(file.size / 1024 / 1024).toFixed(2)}MB). Por favor comprímelo de nuevo.`);
+      e.target.value = '';
+      return;
+  }
+  
   const projId = parseInt(document.getElementById('proj-id').value, 10);
   const proj = mockProjects.find(p => p.id === projId);
   if(proj) {
     if(!proj.documents) proj.documents = [];
+    if(proj.documents.length >= 5) {
+        alert("Límite máximo de 5 documentos alcanzado. Debes eliminar un documento existente antes de subir uno nuevo.");
+        e.target.value = '';
+        return;
+    }
+    
     proj.documents.push({
        name: file.name,
        date: new Date().toISOString().split('T')[0]
@@ -849,19 +862,60 @@ const handleMockDocUpload = async (e) => {
 const handleMockPhotoUpload = async (e) => {
   const file = e.target.files[0];
   if(!file) return;
+  
+  if (file.size > 2 * 1024 * 1024) {
+      alert(`La imagen supera los 2MB permitidos. (Peso actual: ${(file.size / 1024 / 1024).toFixed(2)}MB). Por favor usar un reductor de imágenes antes de subirla.`);
+      e.target.value = '';
+      return;
+  }
+  
+  const stage = document.getElementById('proj-photo-stage').value; // antes, durante, despues
   const projId = parseInt(document.getElementById('proj-id').value, 10);
   const proj = mockProjects.find(p => p.id === projId);
   if(proj) {
+    if(!proj.photos) proj.photos = { antes: [], durante: [], despues: [] };
+    if(Array.isArray(proj.photos)) proj.photos = { antes: proj.photos, durante: [], despues: [] }; // Migración legado
+    
+    if(proj.photos[stage].length >= 5) {
+        alert(`Límite máximo de 5 fotografías para la etapa "${stage.toUpperCase()}" alcanzado.`);
+        e.target.value = '';
+        return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (evt) => {
-      if(!proj.photos) proj.photos = [];
-      proj.photos.push(evt.target.result);
+      proj.photos[stage].push(evt.target.result);
       await fetchData('projects', 'POST', proj);
       await loadDataFromAPI();
       renderProjectAssets(mockProjects.find(p => p.id === projId));
+      document.getElementById('proj-photo-upload').value = '';
     };
     reader.readAsDataURL(file);
   }
+};
+
+window.deleteMockDocument = async (projId, docIndex) => {
+    const proj = mockProjects.find(p => p.id === projId);
+    if (!proj || !proj.documents) return;
+    
+    if (confirm('¿Desea eliminar de forma permanente este documento?')) {
+        proj.documents.splice(docIndex, 1);
+        await fetchData('projects', 'POST', proj);
+        await loadDataFromAPI();
+        renderProjectAssets(mockProjects.find(p => p.id === projId));
+    }
+};
+
+window.deleteMockPhoto = async (projId, category, photoIndex) => {
+    const proj = mockProjects.find(p => p.id === projId);
+    if (!proj || !proj.photos || !proj.photos[category]) return;
+    
+    if (confirm('¿Desea descartar esta fotografía del registro?')) {
+        proj.photos[category].splice(photoIndex, 1);
+        await fetchData('projects', 'POST', proj);
+        await loadDataFromAPI();
+        renderProjectAssets(mockProjects.find(p => p.id === projId));
+    }
 };
 
 const handleMockNoteAdd = async () => {
@@ -891,30 +945,50 @@ const renderProjectAssets = (proj) => {
   const listDocs = document.getElementById('proj-docs-list');
   listDocs.innerHTML = '';
   if(proj.documents && proj.documents.length) {
-     proj.documents.forEach(d => {
+     proj.documents.forEach((d, idx) => {
        listDocs.innerHTML += `
-         <div class="doc-item">
-            <i data-lucide="file-text" style="color:var(--danger)"></i>
-            <div style="flex:1">
-               <strong style="display:block">${d.name}</strong>
-               <small style="color:var(--text-muted)">Añadido: ${d.date}</small>
+         <div class="doc-item" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+               <i data-lucide="file-text" style="color:var(--danger)"></i>
+               <div>
+                  <strong style="display:block; font-size:0.9rem;">${d.name}</strong>
+                  <small style="color:var(--text-muted)">Subido: ${d.date}</small>
+               </div>
             </div>
+            <button type="button" class="btn-icon btn-icon-danger" onclick="deleteMockDocument(${proj.id}, ${idx})"><i data-lucide="trash-2" style="width:16px;"></i></button>
          </div>
        `;
      });
   } else {
-     listDocs.innerHTML = '<p style="color:var(--text-muted); text-align:center">No hay documentos anexos.</p>';
+     listDocs.innerHTML = '<p style="color:var(--text-muted); text-align:center; font-size:0.85rem; padding:1rem;">No hay documentos registrados actualmente.</p>';
   }
   
-  const listPhotos = document.getElementById('proj-photos-list');
-  listPhotos.innerHTML = '';
-  if(proj.photos && proj.photos.length) {
-     proj.photos.forEach(b64 => {
-       listPhotos.innerHTML += `<img src="${b64}" class="photo-img">`;
-     });
-  } else {
-     listPhotos.innerHTML = '<p style="color:var(--text-muted); text-align:center; grid-column: 1/-1;">Sin registro fotográfico.</p>';
+  // Soporte legado para migracion de arrays planos a objeto agrupado
+  let pObj = proj.photos || { antes: [], durante: [], despues: [] };
+  if(Array.isArray(pObj)) {
+     pObj = { antes: pObj, durante: [], despues: [] };
   }
+  
+  const renderPhotoCategory = (categoryName, domId) => {
+     const list = document.getElementById(domId);
+     if(!list) return;
+     list.innerHTML = '';
+     if(pObj[categoryName] && pObj[categoryName].length > 0) {
+        pObj[categoryName].forEach((b64, idx) => {
+          list.innerHTML += `
+            <div style="position:relative; width:100%; pt-1;">
+              <img src="${b64}" style="width:100%; height:80px; object-fit:cover; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+              <button type="button" onclick="deleteMockPhoto(${proj.id}, '${categoryName}', ${idx})" style="position:absolute; top:-5px; right:-5px; background:white; border-radius:50%; border:1px solid #fee2e2; color:var(--danger); padding:2px; cursor:pointer;"><i data-lucide="x" style="width:14px; height:14px;"></i></button>
+            </div>`;
+        });
+     } else {
+        list.innerHTML = `<p style="grid-column:1/-1; font-size:0.8rem; color:#9CA3AF; text-align:center;">Sin evidencias de ${categoryName}</p>`;
+     }
+  };
+  
+  renderPhotoCategory('antes', 'proj-photos-antes');
+  renderPhotoCategory('durante', 'proj-photos-durante');
+  renderPhotoCategory('despues', 'proj-photos-despues');
   
   const listNotes = document.getElementById('proj-notes-list');
   listNotes.innerHTML = '';
