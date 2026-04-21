@@ -236,11 +236,11 @@ const renderDashboard = () => {
   statsContainer.innerHTML = `
     <div class="stat-card glass-panel">
       <div class="stat-title">Presupuesto Inicial</div>
-      <div class="stat-value">${formatCurrency(yearData.initialBudget)}</div>
+      <div class="stat-value">${formatCurrency(parseFloat(yearData.initialBudget) || 0)}</div>
     </div>
     <div class="stat-card glass-panel">
       <div class="stat-title">Adiciones + Superávit</div>
-      <div class="stat-value">${formatCurrency((yearData.addition || 0) + superavit)}</div>
+      <div class="stat-value">${formatCurrency((parseFloat(yearData.addition) || 0) + superavit)}</div>
     </div>
     <div class="stat-card glass-panel stat-success">
       <div class="stat-title">Presupuesto Total Anual</div>
