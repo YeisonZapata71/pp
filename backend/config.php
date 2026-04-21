@@ -1,7 +1,7 @@
 <?php
 // backend/config.php
 
-define('DB_HOST', '127.0.0.1');
+define('DB_HOST', 'localhost');
 define('DB_USER', 'u738685852_userpp'); 
 define('DB_PASS', 'Gira2026**');     
 define('DB_NAME', 'u738685852_pp'); 
