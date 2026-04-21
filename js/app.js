@@ -657,8 +657,8 @@ const renderProjects = () => {
   const counts = { "Planificación": 0, "En Ejecución": 0, "Finalizado": 0 };
   
   projectsOfYear.forEach(proj => {
-    // Buscar el nombre de la JAC
-    const jac = mockJACs.find(j => j.id == proj.jacId);
+    // Buscar el nombre de la JAC en el Directorio General
+    const jac = mockDirectoryJACs.find(j => String(j.id) === String(proj.jacId));
     const jacName = jac ? jac.name : 'JAC Desconocida';
     
     // Preparar tarjeta
@@ -714,12 +714,10 @@ const populateProjectYears = () => {
 
 const populateJacSelect = () => {
   const select = document.getElementById('proj-jac');
-  const selectedYear = parseInt(document.getElementById('proj-year').value, 10) || currentYear;
   select.innerHTML = '<option value="">-- Seleccionar JAC Ejecutora --</option>';
   
-  // Filtrar JACS por el año seleccionado
-  const jacsOfYear = mockJACs.filter(j => j.year === selectedYear);
-  jacsOfYear.forEach(jac => {
+  // Utilizar el directorio general completo en lugar de las JACs filtradas por presupuesto
+  mockDirectoryJACs.forEach(jac => {
     const opt = document.createElement('option');
     opt.value = jac.id;
     opt.textContent = jac.name;
@@ -1050,7 +1048,7 @@ const renderPayments = () => {
   // Render History Table
   const historyOfYear = mockPayments.filter(p => p.year === currentYear).sort((a,b) => new Date(b.date) - new Date(a.date));
   historyOfYear.forEach(pay => {
-    const jac = mockJACs.find(j => j.id == pay.jacId);
+    const jac = mockDirectoryJACs.find(j => String(j.id) === String(pay.jacId));
     const jacName = jac ? jac.name : 'Desconocida';
     
     const tr = document.createElement('tr');
@@ -1070,14 +1068,14 @@ const openModalPayment = () => {
   const select = document.getElementById('pay-jac');
   select.innerHTML = '<option value="">-- Seleccione una Junta --</option>';
   
-  const jacsOfYear = mockJACs.filter(j => j.year === currentYear);
-  jacsOfYear.forEach(jac => {
+  mockDirectoryJACs.forEach(jac => {
     const opt = document.createElement('option');
     opt.value = jac.id;
     opt.textContent = jac.name;
     select.appendChild(opt);
   });
   
+  document.getElementById('form-payment').reset();
   openModal('modal-payment');
 };
 
