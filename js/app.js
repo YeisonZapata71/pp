@@ -443,35 +443,48 @@ const handleExcelBulkUpload = (e) => {
       if(window.lucide) lucide.createIcons();
       
       let imported = 0;
-      const dataRows = XLSX.utils.sheet_to_json(worksheet); 
+      const dataRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); 
+      let headIndexes = { name: -1, president: -1, phone: -1 };
+
       for (const row of dataRows) {
-          const keys = Object.keys(row);
-          if (keys.length < 1) continue;
+          if (!row || row.length === 0) continue;
           
-          const getVal = (possibleKeys) => {
-              for(let k of keys) {
-                  if (possibleKeys.some(pk => k.toLowerCase().includes(pk))) {
-                      return row[k];
-                  }
+          let textJoined = row.join(" ").toLowerCase();
+          
+          // Detectar la fila de títulos/encabezados de columnas (debe tener más de 1 columna para saltarse títulos combinados)
+          if (headIndexes.name === -1 && row.length >= 2 && (textJoined.includes("jac") || textJoined.includes("nombre") || textJoined.includes("presidente") || textJoined.includes("contacto"))) {
+              for (let j = 0; j < row.length; j++) {
+                  let cellStr = String(row[j] || "").toLowerCase();
+                  if (cellStr.includes("jac") || cellStr.includes("junta") || cellStr.includes("nombre")) headIndexes.name = j;
+                  else if (cellStr.includes("presidente") || cellStr.includes("lider")) headIndexes.president = j;
+                  else if (cellStr.includes("contacto") || cellStr.includes("tel") || cellStr.includes("cel")) headIndexes.phone = j;
               }
-              return "No Especificado";
-          };
+              continue; // Saltamos la línea porque son los encabezados
+          }
           
-          const name = getVal(['nombre', 'junta', 'barrio', 'vereda', 'jac', 'comite']);
-          if(name === "No Especificado") continue;
+          // Fallback para tablas sin encabezado obvio
+          if (headIndexes.name === -1) {
+              if (String(row[0] || "").toLowerCase().includes("junta") && row.length > 1) {
+                  headIndexes = { name: 0, president: 1, phone: 2 };
+              } else {
+                  continue; // Probablemente es un Título global, saltamos
+              }
+          }
           
-          const rawZone = getVal(['zona', 'sector', 'area']).toString().toLowerCase();
-          const zone = rawZone.includes('rural') ? 'Rural' : 'Urbana';
+          let name = headIndexes.name !== -1 && row[headIndexes.name] ? String(row[headIndexes.name]).trim() : "";
+          let president = headIndexes.president !== -1 && row[headIndexes.president] ? String(row[headIndexes.president]).trim() : "No Especificado";
+          let phone = headIndexes.phone !== -1 && row[headIndexes.phone] ? String(row[headIndexes.phone]).trim() : "No Especificado";
           
-          const president = getVal(['presidente', 'lider', 'encargado']);
-          const phone = getVal(['telefono', 'celular', 'tel', 'cel', 'contacto']);
+          if (!name || name.toLowerCase() === "jac") continue;
+          
+          let zone = name.toLowerCase().includes('vereda') ? 'Rural' : 'Urbana';
           
           await fetchData('directory_jacs', 'POST', {
               id: null,
-              name: String(name),
+              name: name,
               zone: zone, 
-              president: String(president),
-              phone: String(phone)
+              president: president,
+              phone: phone
           });
           imported++;
       }
@@ -486,8 +499,10 @@ const handleExcelBulkUpload = (e) => {
     } finally {
         e.target.value = ''; 
         const btn = document.querySelector('button[onclick*="excel-upload"]');
-        btn.innerHTML = '<i data-lucide="file-spreadsheet"></i> Carga Masiva';
-        btn.disabled = false;
+        if (btn) {
+            btn.innerHTML = '<i data-lucide="file-spreadsheet"></i> Carga Masiva';
+            btn.disabled = false;
+        }
         if(window.lucide) lucide.createIcons();
     }
   };
