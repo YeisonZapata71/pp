@@ -543,29 +543,44 @@ const renderDirectory = () => {
     const card = document.createElement('div');
     card.className = 'jac-card glass-panel';
     card.innerHTML = `
-      <div class="jac-header">
-        <div class="jac-name-status">
-          <h3 class="jac-name">${jac.name}</h3>
-          <span class="jac-status" style="background-color:rgba(18, 59, 46, 0.1); color:var(--primary)">Zona ${jac.zone}</span>
+      <div style="display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+        <div style="margin-bottom:1rem;">
+          <span class="jac-status" style="background-color: ${jac.zone === 'Rural' ? 'rgba(201, 218, 44, 0.2)' : 'rgba(22, 65, 51, 0.1)'}; color: ${jac.zone === 'Rural' ? 'var(--primary)' : 'var(--primary)'}; margin-bottom:0.75rem; display:inline-flex; align-items:center; gap:4px; font-size:0.75rem;">
+            <i data-lucide="${jac.zone === 'Rural' ? 'tree-pine' : 'building-2'}" style="width:14px; height:14px;"></i>
+            Zona ${jac.zone}
+          </span>
+          <h3 style="font-size:1.15rem; font-weight:700; color:var(--text-main); line-height:1.3;">${jac.name}</h3>
         </div>
-        <div class="jac-actions">
-          <button class="btn-icon" onclick="editDirectoryJac(${jac.id})" title="Editar Info">
-            <i data-lucide="pencil" style="width:16px; height:16px;"></i>
+        
+        <div style="background-color: #F9FAFB; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem; border: 1px solid #E5E7EB; flex-grow:1;">
+          <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
+             <div style="background: white; padding: 0.5rem; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color:var(--primary); display:flex; align-items:center;">
+               <i data-lucide="user" style="width:18px; height:18px;"></i>
+             </div>
+             <div>
+               <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Presidente / Líder</div>
+               <div style="font-size:0.95rem; font-weight:600; color:var(--text-main);">${jac.president}</div>
+             </div>
+          </div>
+          
+          <div style="display:flex; align-items:center; gap:0.75rem;">
+             <div style="background: white; padding: 0.5rem; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color:var(--primary); display:flex; align-items:center;">
+               <i data-lucide="phone" style="width:18px; height:18px;"></i>
+             </div>
+             <div>
+               <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Teléfono de Contacto</div>
+               <div style="font-size:0.95rem; font-weight:600; color:var(--text-main);">${jac.phone}</div>
+             </div>
+          </div>
+        </div>
+        
+        <div style="display:flex; gap:0.5rem; margin-top:auto;">
+          <button class="btn btn-secondary" onclick="editDirectoryJac(${jac.id})" style="flex:1; padding:0.5rem; font-size:0.85rem; justify-content:center;">
+            <i data-lucide="edit" style="width:16px; height:16px;"></i> Editar
           </button>
-          <button class="btn-icon btn-icon-danger" onclick="deleteDirectoryJac(${jac.id})" title="Eliminar del Directorio">
-            <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+          <button class="btn" onclick="deleteDirectoryJac(${jac.id})" style="flex:1; padding:0.5rem; font-size:0.85rem; color:var(--danger); border:1px solid #FECACA; background:#FEF2F2; justify-content:center;">
+            <i data-lucide="trash-2" style="width:16px; height:16px;"></i> Borrar
           </button>
-        </div>
-      </div>
-      
-      <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
-        <div class="jac-info-line">
-          <i data-lucide="user" style="width:16px; height:16px;"></i>
-          <span><strong>Presidente:</strong> ${jac.president}</span>
-        </div>
-        <div class="jac-info-line">
-          <i data-lucide="phone" style="width:16px; height:16px;"></i>
-          <span><strong>Contacto:</strong> ${jac.phone}</span>
         </div>
       </div>
     `;
