@@ -726,15 +726,18 @@ const populateJacSelect = () => {
 };
 
 const openModalProject = () => {
+  // IMPORTANTE: reset() ANTES de repoblar selects para no borrarlos
+  document.getElementById('form-project').reset();
+  document.getElementById('proj-id').value = '';
+  
   populateProjectYears();
   populateJacSelect();
+  
   document.getElementById('proj-has-addition').value = 'no';
   document.getElementById('proj-addition-group').style.display = 'none';
   document.getElementById('proj-addition').value = '0';
-  document.getElementById('proj-id').value = '';
-  document.getElementById('form-project').reset();
   
-  // Ocultar pestañas de evidencia al crear un proyecto nuevo para evitar uploads sin ID
+  // Ocultar pestañas de evidencia al crear proyecto nuevo (uploads sin ID no son válidos)
   document.getElementById('tab-btn-docs').style.display = 'none';
   document.getElementById('tab-btn-photos').style.display = 'none';
   document.getElementById('tab-btn-notes').style.display = 'none';
@@ -797,6 +800,7 @@ const handleProjectSubmit = async (e) => {
   
   const idValue = document.getElementById('proj-id').value;
   const id = idValue ? parseInt(idValue, 10) : null;
+  const isNew = !id;
   const year = parseInt(document.getElementById('proj-year').value, 10);
   const jacId = parseInt(document.getElementById('proj-jac').value, 10);
   const title = document.getElementById('proj-title').value;
@@ -809,17 +813,24 @@ const handleProjectSubmit = async (e) => {
   // Si estamos editando, mantenemos los assets, si no, arrays vacíos
   const existing = mockProjects.find(p => p.id === id);
   const docs = existing ? existing.documents : [];
-  const photos = existing ? existing.photos : [];
+  const photos = existing ? existing.photos : { antes: [], durante: [], despues: [] };
   const notes = existing ? existing.notes : [];
   
-  await fetchData('projects', 'POST', {
+  const res = await fetchData('projects', 'POST', {
       id, year, jacId, title, status, budget, hasAddition, addition, description,
       documents: docs, photos: photos, notes: notes
   });
   
   await loadDataFromAPI();
-  closeModal('modal-project');
   renderProjects();
+
+  if (isNew && res && res.id) {
+    // Proyecto nuevo: cerrar y reabrir en modo edición para que aparezcan las pestañas de evidencias
+    closeModal('modal-project');
+    setTimeout(() => editProject(parseInt(res.id, 10)), 200);
+  } else {
+    closeModal('modal-project');
+  }
 };
 
 // -----------------------------------------
