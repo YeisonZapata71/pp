@@ -424,6 +424,76 @@ const handleJacSubmit = async (e) => {
 // -----------------------------------------
 // LÓGICA DIRECTORIO DE JACs
 // -----------------------------------------
+const handleExcelBulkUpload = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, {type: 'array'});
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      
+      const btn = document.querySelector('button[onclick*="excel-upload"]');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Cargando...';
+      btn.disabled = true;
+      if(window.lucide) lucide.createIcons();
+      
+      let imported = 0;
+      const dataRows = XLSX.utils.sheet_to_json(worksheet); 
+      for (const row of dataRows) {
+          const keys = Object.keys(row);
+          if (keys.length < 1) continue;
+          
+          const getVal = (possibleKeys) => {
+              for(let k of keys) {
+                  if (possibleKeys.some(pk => k.toLowerCase().includes(pk))) {
+                      return row[k];
+                  }
+              }
+              return "No Especificado";
+          };
+          
+          const name = getVal(['nombre', 'junta', 'barrio', 'vereda', 'jac', 'comite']);
+          if(name === "No Especificado") continue;
+          
+          const rawZone = getVal(['zona', 'sector', 'area']).toString().toLowerCase();
+          const zone = rawZone.includes('rural') ? 'Rural' : 'Urbana';
+          
+          const president = getVal(['presidente', 'lider', 'encargado']);
+          const phone = getVal(['telefono', 'celular', 'tel', 'cel', 'contacto']);
+          
+          await fetchData('directory_jacs', 'POST', {
+              id: null,
+              name: String(name),
+              zone: zone, 
+              president: String(president),
+              phone: String(phone)
+          });
+          imported++;
+      }
+      
+      await loadDataFromAPI();
+      renderDirectory();
+      alert(`Carga masiva completada: ${imported} JACs importadas exitosamente.`);
+      
+    } catch(err) {
+      console.error(err);
+      alert("Error procesando el archivo Excel. Asegúrate de que no esté dañado.");
+    } finally {
+        e.target.value = ''; 
+        const btn = document.querySelector('button[onclick*="excel-upload"]');
+        btn.innerHTML = '<i data-lucide="file-spreadsheet"></i> Carga Masiva';
+        btn.disabled = false;
+        if(window.lucide) lucide.createIcons();
+    }
+  };
+  reader.readAsArrayBuffer(file);
+};
+
 const renderDirectory = () => {
   const container = document.getElementById('directory-container');
   container.innerHTML = '';

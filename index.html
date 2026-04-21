@@ -9,7 +9,9 @@
     <!-- Estilos -->
     <link rel="stylesheet" href="css/styles.css">
     <!-- Iconos de Lucide -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Script SheetJS para lectura de Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
 <body>
     <!-- Vista de Autenticación Principal -->
     <div class="login-view" id="login-view">
@@ -111,7 +113,11 @@
                 <section>
                     <div class="section-title">
                         <h2>Listado General</h2>
-                        <button class="btn btn-primary" onclick="openModal('modal-directory-jac')"><i data-lucide="plus"></i> Añadir JAC</button>
+                        <div style="display:flex; gap:1rem;">
+                            <input type="file" id="excel-upload" accept=".xlsx, .xls, .csv" style="display:none" onchange="handleExcelBulkUpload(event)">
+                            <button class="btn btn-secondary" onclick="document.getElementById('excel-upload').click()"><i data-lucide="file-spreadsheet"></i> Carga Masiva</button>
+                            <button class="btn btn-primary" onclick="openModal('modal-directory-jac')"><i data-lucide="plus"></i> Añadir JAC</button>
+                        </div>
                     </div>
                     <div class="jacs-grid" id="directory-container">
                         <!-- Renderizado por JS -->
@@ -555,7 +561,7 @@
     </div>
 
     <!-- Scripts de la Aplicación -->
-    <script src="js/app.js?v=11.0"></script>
+    <script src="js/app.js?v=12.0"></script>
     <script>
         // Inicializar Iconos
         lucide.createIcons();
