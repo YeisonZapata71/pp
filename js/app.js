@@ -733,6 +733,15 @@ const openModalProject = () => {
   document.getElementById('proj-has-addition').value = 'no';
   document.getElementById('proj-addition-group').style.display = 'none';
   document.getElementById('proj-addition').value = '0';
+  document.getElementById('proj-id').value = '';
+  document.getElementById('form-project').reset();
+  
+  // Ocultar pestañas de evidencia al crear un proyecto nuevo para evitar uploads sin ID
+  document.getElementById('tab-btn-docs').style.display = 'none';
+  document.getElementById('tab-btn-photos').style.display = 'none';
+  document.getElementById('tab-btn-notes').style.display = 'none';
+  switchProjectTab('ptab-general');
+
   document.getElementById('modal-project-title').textContent = 'Registrar Nuevo Proyecto';
   document.getElementById('btn-delete-proj').style.display = 'none';
   openModal('modal-project');
