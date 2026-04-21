@@ -909,12 +909,12 @@ const renderConfig = () => {
   const sortedBudgets = [...globalBudgets].sort((a,b) => b.year - a.year);
   
   sortedBudgets.forEach(b => {
-    const superavit = parseInt(b.superavit, 10) || 0;
-    const total = b.initialBudget + (b.addition || 0) + superavit;
+    const superavit = parseFloat(b.superavit) || 0;
+    const total = (parseFloat(b.initialBudget) || 0) + (parseFloat(b.addition) || 0) + superavit;
     
     // Calcular en uso real (Basado en proyectos)
     const projectsOfYear = mockProjects.filter(p => p.year === b.year);
-    const assignedToProjects = projectsOfYear.reduce((sum, p) => sum + (p.budget + (p.hasAddition ? p.addition : 0)), 0);
+    const assignedToProjects = projectsOfYear.reduce((sum, p) => sum + ((parseFloat(p.budget) || 0) + (p.hasAddition ? (parseFloat(p.addition) || 0) : 0)), 0);
     const remaining = total - assignedToProjects;
     
     const tr = document.createElement('tr');
@@ -944,9 +944,9 @@ const openModalYear = (year) => {
     document.getElementById('modal-year-title').textContent = `Editar Presupuesto Base ${year}`;
     document.getElementById('cfg-year').value = b.year;
     document.getElementById('cfg-year').readOnly = true;
-    document.getElementById('cfg-initial').value = new Intl.NumberFormat('es-CO').format(b.initialBudget);
-    document.getElementById('cfg-addition').value = new Intl.NumberFormat('es-CO').format(b.addition || 0);
-    document.getElementById('cfg-superavit').value = new Intl.NumberFormat('es-CO').format(b.superavit || 0);
+    document.getElementById('cfg-initial').value = new Intl.NumberFormat('es-CO').format(parseFloat(b.initialBudget) || 0);
+    document.getElementById('cfg-addition').value = new Intl.NumberFormat('es-CO').format(parseFloat(b.addition) || 0);
+    document.getElementById('cfg-superavit').value = new Intl.NumberFormat('es-CO').format(parseFloat(b.superavit) || 0);
   } else {
     document.getElementById('modal-year-title').textContent = 'Inaugurar Año Presupuestal';
     document.getElementById('cfg-year').readOnly = false;
