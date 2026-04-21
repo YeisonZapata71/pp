@@ -494,6 +494,27 @@ const handleExcelBulkUpload = (e) => {
   reader.readAsArrayBuffer(file);
 };
 
+const deleteAllDirectoryJACs = async () => {
+  if (mockDirectoryJACs.length === 0) {
+      alert("El directorio ya está vacío.");
+      return;
+  }
+  const pass = prompt("Estás a punto de ELIMINAR TODO EL DIRECTORIO DE JACs.\n\nEscribe 'BORRAR' en mayúsculas para confirmar esta acción:");
+  if (pass === 'BORRAR') {
+      try {
+          await fetchData('directory_jacs', 'DELETE', { deleteAll: true });
+          await loadDataFromAPI();
+          renderDirectory();
+          alert("El directorio de JACs ha sido vaciado exitosamente.");
+      } catch (err) {
+          console.error(err);
+          alert("Ocurrió un error al intentar vaciar el directorio.");
+      }
+  } else if(pass !== null) {
+      alert("Operación cancelada. El texto no coincidía.");
+  }
+};
+
 const renderDirectory = () => {
   const container = document.getElementById('directory-container');
   container.innerHTML = '';

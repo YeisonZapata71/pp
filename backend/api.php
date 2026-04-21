@@ -107,6 +107,11 @@ switch ($endpoint) {
             $stmt->execute();
             echo json_encode(["status" => "success"]);
         } elseif ($method === 'DELETE') {
+            if (isset($input['deleteAll']) && $input['deleteAll'] === true) {
+                $conn->query("TRUNCATE TABLE directory_jacs");
+                echo json_encode(["status" => "success", "message" => "Directorio vaciado completamente."]);
+                exit;
+            }
             $id = $input['id'];
             $conn->query("DELETE FROM directory_jacs WHERE id = " . intval($id));
             echo json_encode(["status" => "success"]);
