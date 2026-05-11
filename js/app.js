@@ -32,12 +32,20 @@ const fetchData = async (endpoint, method="GET", body=null) => {
 
 const loadDataFromAPI = async () => {
     try {
-        globalBudgets = await fetchData('global_budgets');
-        mockJACs = await fetchData('jacs');
-        mockDirectoryJACs = await fetchData('directory_jacs');
-        mockProjects = await fetchData('projects');
-        mockPayments = await fetchData('payments');
-        mockUsers = await fetchData('users');
+        const [resBudgets, resJACs, resDirJACs, resProjects, resPayments, resUsers] = await Promise.all([
+            fetchData('global_budgets'),
+            fetchData('jacs'),
+            fetchData('directory_jacs'),
+            fetchData('projects'),
+            fetchData('payments'),
+            fetchData('users')
+        ]);
+        globalBudgets = resBudgets;
+        mockJACs = resJACs;
+        mockDirectoryJACs = resDirJACs;
+        mockProjects = resProjects;
+        mockPayments = resPayments;
+        mockUsers = resUsers;
     } catch(e) { console.error("Error cargando DB:", e); }
 };
 
@@ -798,6 +806,14 @@ const deleteProject = async () => {
 const handleProjectSubmit = async (e) => {
   e.preventDefault();
   
+  const btn = e.target.querySelector('button[type="submit"]');
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+      btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Guardando...';
+      btn.disabled = true;
+      if(window.lucide) lucide.createIcons();
+  }
+  
   const idValue = document.getElementById('proj-id').value;
   const id = idValue ? parseInt(idValue, 10) : null;
   const isNew = !id;
@@ -816,20 +832,30 @@ const handleProjectSubmit = async (e) => {
   const photos = existing ? existing.photos : { antes: [], durante: [], despues: [] };
   const notes = existing ? existing.notes : [];
   
-  const res = await fetchData('projects', 'POST', {
-      id, year, jacId, title, status, budget, hasAddition, addition, description,
-      documents: docs, photos: photos, notes: notes
-  });
-  
-  await loadDataFromAPI();
-  renderProjects();
-
-  if (isNew && res && res.id) {
-    // Proyecto nuevo: cerrar y reabrir en modo edición para que aparezcan las pestañas de evidencias
-    closeModal('modal-project');
-    setTimeout(() => editProject(parseInt(res.id, 10)), 200);
-  } else {
-    closeModal('modal-project');
+  try {
+      const res = await fetchData('projects', 'POST', {
+          id, year, jacId, title, status, budget, hasAddition, addition, description,
+          documents: docs, photos: photos, notes: notes
+      });
+      
+      // OPTIMIZACIÓN: Solo recargamos los proyectos para mayor velocidad
+      mockProjects = await fetchData('projects');
+      renderProjects();
+      renderDashboard(); // Actualizar dashboard por si cambió el presupuesto asignado
+    
+      if (isNew && res && res.id) {
+        // Proyecto nuevo: cerrar y reabrir en modo edición para que aparezcan las pestañas de evidencias
+        closeModal('modal-project');
+        setTimeout(() => editProject(parseInt(res.id, 10)), 200);
+      } else {
+        closeModal('modal-project');
+      }
+  } finally {
+      if (btn) {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          if(window.lucide) lucide.createIcons();
+      }
   }
 };
 
