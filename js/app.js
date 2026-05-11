@@ -653,7 +653,7 @@ const handleDirectorySubmit = async (e) => {
 // LÓGICA DE PROYECTOS (KANBAN)
 // -----------------------------------------
 
-const handleProjectBulkUpload = (e) => {
+window.handleProjectBulkUpload = (e) => {
   const file = e.target.files[0];
   if (!file) return;
   
