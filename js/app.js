@@ -197,21 +197,22 @@ const parseNumber = (str) => {
 
 // Renderizar Selector de Años
 const renderYearSelector = () => {
-  const container = document.getElementById('year-selector-container');
-  container.innerHTML = '';
-  
-  globalBudgets.forEach(y => {
-    const btn = document.createElement('button');
-    btn.className = `year-btn ${y.year === currentYear ? 'active' : ''}`;
-    btn.textContent = y.year;
-    // Al hacer clic, cambia el año, re-renderiza botones y re-calcula tarjetas
-    btn.onclick = () => {
-      currentYear = y.year;
-      renderYearSelector();
-      renderDashboard();
-      if(typeof renderProjects === 'function') renderProjects();
-    };
-    container.appendChild(btn);
+  const containers = document.querySelectorAll('.year-selector-container');
+  containers.forEach(container => {
+      container.innerHTML = '';
+      globalBudgets.forEach(y => {
+        const btn = document.createElement('button');
+        btn.className = `year-btn ${y.year === currentYear ? 'active' : ''}`;
+        btn.textContent = y.year;
+        // Al hacer clic, cambia el año, re-renderiza botones y re-calcula tarjetas
+        btn.onclick = () => {
+          currentYear = y.year;
+          renderYearSelector();
+          renderDashboard();
+          if(typeof renderProjects === 'function') renderProjects();
+        };
+        container.appendChild(btn);
+      });
   });
 };
 
