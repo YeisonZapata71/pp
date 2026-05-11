@@ -141,7 +141,11 @@
                 <section>
                     <div class="section-title">
                         <h2>Kanban por Estados</h2>
-                        <button class="btn btn-primary" onclick="openModalProject()"><i data-lucide="plus"></i> Nuevo Proyecto</button>
+                        <div style="display:flex; gap:1rem;">
+                            <input type="file" id="excel-project-upload" accept=".xlsx, .xls" style="display:none" onchange="handleProjectBulkUpload(event)">
+                            <button class="btn btn-secondary" onclick="document.getElementById('excel-project-upload').click()"><i data-lucide="file-spreadsheet"></i> Importar Proyectos</button>
+                            <button class="btn btn-primary" onclick="openModalProject()"><i data-lucide="plus"></i> Nuevo Proyecto</button>
+                        </div>
                     </div>
                     <div class="kanban-board" id="kanban-container">
                         <!-- Columna: Planificación -->

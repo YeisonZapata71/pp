@@ -653,6 +653,119 @@ const handleDirectorySubmit = async (e) => {
 // LÓGICA DE PROYECTOS (KANBAN)
 // -----------------------------------------
 
+const handleProjectBulkUpload = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, {type: 'array'});
+      
+      const btn = document.querySelector('button[onclick*="excel-project-upload"]');
+      const originalText = btn ? btn.innerHTML : '';
+      if (btn) {
+          btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Importando...';
+          btn.disabled = true;
+          if(window.lucide) lucide.createIcons();
+      }
+      
+      let imported = 0;
+      
+      for (const sheetName of workbook.SheetNames) {
+          let yearMatch = sheetName.match(/\d{4}/);
+          let sheetYear = yearMatch ? parseInt(yearMatch[0], 10) : currentYear;
+          
+          const worksheet = workbook.Sheets[sheetName];
+          const dataRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); 
+          
+          let headIndexes = { jac: -1, title: -1, budget: -1, status: -1, category: -1 };
+
+          for (const row of dataRows) {
+              if (!row || row.length === 0) continue;
+              
+              let textJoined = row.join(" ").toLowerCase();
+              
+              if (headIndexes.jac === -1 && (textJoined.includes("barrio") || textJoined.includes("vereda") || textJoined.includes("jac"))) {
+                  for (let j = 0; j < row.length; j++) {
+                      let cellStr = String(row[j] || "").toLowerCase();
+                      if (cellStr.includes("barrio") || cellStr.includes("vereda") || cellStr.includes("jac")) headIndexes.jac = j;
+                      else if (cellStr.includes("proyecto") || cellStr.includes("título") || cellStr.includes("titulo")) {
+                          if (!cellStr.includes("tipo") && !cellStr.includes("estado") && !cellStr.includes("año")) headIndexes.title = j;
+                      }
+                      else if (cellStr.includes("presupuesto") || cellStr.includes("valor") || cellStr.includes("inversión")) headIndexes.budget = j;
+                      else if (cellStr.includes("estado proyecto") || cellStr.includes("estado")) headIndexes.status = j;
+                      else if (cellStr.includes("categoría") || cellStr.includes("tipo")) headIndexes.category = j;
+                  }
+                  continue; 
+              }
+              
+              if (headIndexes.jac === -1) continue; 
+              
+              let jacNameRaw = headIndexes.jac !== -1 && row[headIndexes.jac] ? String(row[headIndexes.jac]).trim() : "";
+              let titleRaw = headIndexes.title !== -1 && row[headIndexes.title] ? String(row[headIndexes.title]).trim() : "";
+              let budgetRaw = headIndexes.budget !== -1 && row[headIndexes.budget] ? String(row[headIndexes.budget]).trim() : "0";
+              let statusRaw = headIndexes.status !== -1 && row[headIndexes.status] ? String(row[headIndexes.status]).trim() : "Planificación";
+              let categoryRaw = headIndexes.category !== -1 && row[headIndexes.category] ? String(row[headIndexes.category]).trim() : "";
+              
+              if (!jacNameRaw || !titleRaw || titleRaw.toLowerCase() === 'proyecto') continue;
+              
+              let matchedJac = mockDirectoryJACs.find(j => j.name.toLowerCase().includes(jacNameRaw.toLowerCase()) || jacNameRaw.toLowerCase().includes(j.name.toLowerCase()));
+              
+              let jacId = matchedJac ? parseInt(matchedJac.id, 10) : null;
+              if (!jacId) {
+                  jacId = mockDirectoryJACs.length > 0 ? parseInt(mockDirectoryJACs[0].id, 10) : 1; 
+              }
+              
+              let cleanBudget = budgetRaw.replace(/[^\d.-]/g, "");
+              let budgetVal = parseFloat(cleanBudget) || 0;
+              
+              let mappedStatus = "Planificación";
+              let sLower = statusRaw.toLowerCase();
+              if (sLower.includes("ejecución") || sLower.includes("proceso") || sLower.includes("curso")) mappedStatus = "En Ejecución";
+              else if (sLower.includes("finalizado") || sLower.includes("terminado") || sLower.includes("entregado") || sLower.includes("liquidado")) mappedStatus = "Finalizado";
+              
+              await fetchData('projects', 'POST', {
+                  id: null,
+                  year: sheetYear,
+                  jacId: jacId,
+                  title: titleRaw,
+                  status: mappedStatus,
+                  budget: budgetVal,
+                  hasAddition: false,
+                  addition: 0,
+                  description: categoryRaw ? `Categoría: ${categoryRaw}` : "",
+                  documents: [],
+                  photos: { antes: [], durante: [], despues: [] },
+                  notes: []
+              });
+              
+              imported++;
+          }
+      }
+      
+      mockProjects = await fetchData('projects');
+      renderProjects();
+      renderDashboard();
+      alert(`Carga masiva completada: ${imported} proyectos importados exitosamente.`);
+      
+    } catch(err) {
+      console.error(err);
+      alert("Error procesando el archivo Excel. Asegúrate de que tenga el formato correcto.");
+    } finally {
+        e.target.value = ''; 
+        const btn = document.querySelector('button[onclick*="excel-project-upload"]');
+        if (btn) {
+            btn.innerHTML = '<i data-lucide="file-spreadsheet"></i> Importar Proyectos';
+            btn.disabled = false;
+        }
+        if(window.lucide) lucide.createIcons();
+    }
+  };
+  reader.readAsArrayBuffer(file);
+};
+
 const renderProjects = () => {
   // Limpiar columnas
   document.querySelectorAll('.kanban-cards').forEach(el => el.innerHTML = '');
