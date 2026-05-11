@@ -657,21 +657,27 @@ const handleProjectBulkUpload = (e) => {
   const file = e.target.files[0];
   if (!file) return;
   
+  // Restablecer el estado del modal
+  document.getElementById('import-icon-container').innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 48px; height: 48px; color: var(--primary);"></i>';
+  document.getElementById('import-title').textContent = 'Procesando Archivo Excel...';
+  document.getElementById('import-subtitle').textContent = 'Por favor, no cierres esta ventana.';
+  document.getElementById('import-progress-container').style.display = 'block';
+  document.getElementById('import-progress-bar').style.width = '0%';
+  document.getElementById('import-progress-bar').style.background = 'var(--primary)';
+  document.getElementById('import-details').textContent = 'Analizando hojas...';
+  document.getElementById('import-actions').style.display = 'none';
+  if(window.lucide) lucide.createIcons();
+  
+  openModal('modal-import-progress');
+  
   const reader = new FileReader();
   reader.onload = async (evt) => {
     try {
       const data = new Uint8Array(evt.target.result);
       const workbook = XLSX.read(data, {type: 'array'});
       
-      const btn = document.querySelector('button[onclick*="excel-project-upload"]');
-      const originalText = btn ? btn.innerHTML : '';
-      if (btn) {
-          btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Importando...';
-          btn.disabled = true;
-          if(window.lucide) lucide.createIcons();
-      }
-      
-      let imported = 0;
+      // Paso 1: Pre-procesar para contar el total
+      let allProjectsToImport = [];
       
       for (const sheetName of workbook.SheetNames) {
           let yearMatch = sheetName.match(/\d{4}/);
@@ -726,7 +732,7 @@ const handleProjectBulkUpload = (e) => {
               if (sLower.includes("ejecución") || sLower.includes("proceso") || sLower.includes("curso")) mappedStatus = "En Ejecución";
               else if (sLower.includes("finalizado") || sLower.includes("terminado") || sLower.includes("entregado") || sLower.includes("liquidado")) mappedStatus = "Finalizado";
               
-              await fetchData('projects', 'POST', {
+              allProjectsToImport.push({
                   id: null,
                   year: sheetYear,
                   jacId: jacId,
@@ -740,27 +746,53 @@ const handleProjectBulkUpload = (e) => {
                   photos: { antes: [], durante: [], despues: [] },
                   notes: []
               });
-              
-              imported++;
           }
       }
       
+      const total = allProjectsToImport.length;
+      if (total === 0) {
+          throw new Error("No se encontraron proyectos válidos en el archivo. Verifica el formato.");
+      }
+      
+      document.getElementById('import-title').textContent = 'Importando Proyectos...';
+      let imported = 0;
+      
+      // Paso 2: Subir secuencialmente para mostrar progreso en UI
+      for (const projData of allProjectsToImport) {
+          await fetchData('projects', 'POST', projData);
+          imported++;
+          
+          let percentage = Math.round((imported / total) * 100);
+          document.getElementById('import-progress-bar').style.width = `${percentage}%`;
+          document.getElementById('import-details').textContent = `Importando ${imported} de ${total} proyectos... (${percentage}%)`;
+      }
+      
+      // Recargar vistas
       mockProjects = await fetchData('projects');
       renderProjects();
       renderDashboard();
-      alert(`Carga masiva completada: ${imported} proyectos importados exitosamente.`);
+      
+      // Éxito en Modal
+      document.getElementById('import-icon-container').innerHTML = '<div style="background: #D1FAE5; border-radius: 50%; padding: 1rem;"><i data-lucide="check-circle" style="width: 48px; height: 48px; color: #10B981;"></i></div>';
+      document.getElementById('import-title').textContent = '¡Importación Exitosa!';
+      document.getElementById('import-subtitle').textContent = 'Los proyectos se han integrado al tablero.';
+      document.getElementById('import-progress-container').style.display = 'none';
+      document.getElementById('import-details').textContent = `Total guardados: ${imported} proyectos.`;
+      document.getElementById('import-actions').style.display = 'block';
+      if(window.lucide) lucide.createIcons();
       
     } catch(err) {
       console.error(err);
-      alert("Error procesando el archivo Excel. Asegúrate de que tenga el formato correcto.");
+      // Error en Modal
+      document.getElementById('import-icon-container').innerHTML = '<div style="background: #FEE2E2; border-radius: 50%; padding: 1rem;"><i data-lucide="x-circle" style="width: 48px; height: 48px; color: #EF4444;"></i></div>';
+      document.getElementById('import-title').textContent = 'Error en Importación';
+      document.getElementById('import-subtitle').textContent = 'Hubo un problema al procesar los datos.';
+      document.getElementById('import-progress-container').style.display = 'none';
+      document.getElementById('import-details').textContent = err.message || "Asegúrate de usar el formato correcto.";
+      document.getElementById('import-actions').style.display = 'block';
+      if(window.lucide) lucide.createIcons();
     } finally {
         e.target.value = ''; 
-        const btn = document.querySelector('button[onclick*="excel-project-upload"]');
-        if (btn) {
-            btn.innerHTML = '<i data-lucide="file-spreadsheet"></i> Importar Proyectos';
-            btn.disabled = false;
-        }
-        if(window.lucide) lucide.createIcons();
     }
   };
   reader.readAsArrayBuffer(file);

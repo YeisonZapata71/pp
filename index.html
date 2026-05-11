@@ -605,6 +605,29 @@
         </div>
     </div>
 
+    <!-- Modal: Progreso de Importación Masiva -->
+    <div class="modal-overlay" id="modal-import-progress" style="z-index: 1000;">
+        <div class="modal" style="width: 90%; max-width: 400px; text-align: center;">
+            <div style="padding: 2rem 1rem;">
+                <div id="import-icon-container" style="margin-bottom: 1.5rem; display: flex; justify-content: center; align-items: center;">
+                    <i data-lucide="loader-2" class="spin" style="width: 48px; height: 48px; color: var(--primary);"></i>
+                </div>
+                <h3 id="import-title" style="margin-bottom: 0.5rem; font-size: 1.25rem;">Procesando Archivo</h3>
+                <p id="import-subtitle" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Por favor, no cierres esta ventana...</p>
+                
+                <div id="import-progress-container" style="background: #E5E7EB; border-radius: 999px; height: 8px; width: 100%; overflow: hidden; margin-bottom: 1rem;">
+                    <div id="import-progress-bar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                </div>
+                
+                <p id="import-details" style="font-size: 0.85rem; color: var(--text-main); font-weight: 500;"></p>
+                
+                <div id="import-actions" style="margin-top: 2rem; display: none;">
+                    <button type="button" class="btn btn-primary" onclick="closeModal('modal-import-progress')" style="width: 100%; justify-content: center;">Continuar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts de la Aplicación -->
     <script src="js/app.js?v=21.1"></script>
     <script>
