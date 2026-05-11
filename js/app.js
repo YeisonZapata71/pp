@@ -691,12 +691,12 @@ window.handleProjectBulkUpload = (e) => {
           for (const row of dataRows) {
               if (!row || row.length === 0) continue;
               
-              let textJoined = row.join(" ").toLowerCase();
+              let textJoined = row.join(" ").toLowerCase().replace(/\./g, "");
               
-              if (headIndexes.jac === -1 && (textJoined.includes("barrio") || textJoined.includes("vereda") || textJoined.includes("jac"))) {
+              if (headIndexes.jac === -1 && (textJoined.includes("barrio") || textJoined.includes("vereda") || textJoined.includes("jac") || textJoined.includes("nombre"))) {
                   for (let j = 0; j < row.length; j++) {
-                      let cellStr = String(row[j] || "").toLowerCase();
-                      if (cellStr.includes("barrio") || cellStr.includes("vereda") || cellStr.includes("jac")) headIndexes.jac = j;
+                      let cellStr = String(row[j] || "").toLowerCase().replace(/\./g, "");
+                      if (cellStr === "jac" || cellStr.includes("barrio") || cellStr.includes("vereda") || cellStr.includes("jac") || (cellStr === "nombre" && headIndexes.jac === -1)) headIndexes.jac = j;
                       else if (cellStr.includes("proyecto") || cellStr.includes("título") || cellStr.includes("titulo")) {
                           if (!cellStr.includes("tipo") && !cellStr.includes("estado") && !cellStr.includes("año")) headIndexes.title = j;
                       }
@@ -717,7 +717,17 @@ window.handleProjectBulkUpload = (e) => {
               
               if (!jacNameRaw || !titleRaw || titleRaw.toLowerCase() === 'proyecto') continue;
               
-              let matchedJac = mockDirectoryJACs.find(j => j.name.toLowerCase().includes(jacNameRaw.toLowerCase()) || jacNameRaw.toLowerCase().includes(j.name.toLowerCase()));
+              const normalizeText = (text) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+              const jacNorm = normalizeText(jacNameRaw);
+              let matchedJac = mockDirectoryJACs.find(j => {
+                  const dbName = normalizeText(j.name);
+                  const cleanJac = jacNorm.replace(/\b(barrio|vereda|sector|j\.?a\.?c\.?|la|el|los|las)\b/g, "").trim();
+                  const cleanDb = dbName.replace(/\b(barrio|vereda|sector|j\.?a\.?c\.?|la|el|los|las)\b/g, "").trim();
+                  if (cleanJac.length > 2 && cleanDb.length > 2) {
+                      return cleanDb.includes(cleanJac) || cleanJac.includes(cleanDb);
+                  }
+                  return dbName.includes(jacNorm) || jacNorm.includes(dbName);
+              });
               
               let jacId = matchedJac ? parseInt(matchedJac.id, 10) : null;
               if (!jacId) {
@@ -785,7 +795,7 @@ window.handleProjectBulkUpload = (e) => {
       document.getElementById('import-title').textContent = '¡Importación Exitosa!';
       document.getElementById('import-subtitle').textContent = 'Los proyectos se han integrado al tablero.';
       document.getElementById('import-progress-container').style.display = 'none';
-      document.getElementById('import-details').textContent = `Total guardados: ${imported} proyectos.`;
+      document.getElementById('import-details').textContent = `Total guardados: ${imported} proyectos. (Recuerda seleccionar el año correcto en el menú superior para verlos)`;
       document.getElementById('import-actions').style.display = 'block';
       if(window.lucide) lucide.createIcons();
       
