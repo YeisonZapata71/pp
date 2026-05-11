@@ -756,15 +756,23 @@ const handleProjectBulkUpload = (e) => {
       
       document.getElementById('import-title').textContent = 'Importando Proyectos...';
       let imported = 0;
+      let importedIds = [];
       
       // Paso 2: Subir secuencialmente para mostrar progreso en UI
       for (const projData of allProjectsToImport) {
-          await fetchData('projects', 'POST', projData);
+          const res = await fetchData('projects', 'POST', projData);
+          if (res && res.id) {
+              importedIds.push(res.id);
+          }
           imported++;
           
           let percentage = Math.round((imported / total) * 100);
           document.getElementById('import-progress-bar').style.width = `${percentage}%`;
           document.getElementById('import-details').textContent = `Importando ${imported} de ${total} proyectos... (${percentage}%)`;
+      }
+      
+      if (importedIds.length > 0) {
+          sessionStorage.setItem('pp_last_imported_projects', JSON.stringify(importedIds));
       }
       
       // Recargar vistas
@@ -798,7 +806,50 @@ const handleProjectBulkUpload = (e) => {
   reader.readAsArrayBuffer(file);
 };
 
+window.undoLastProjectImport = async () => {
+    const idsStr = sessionStorage.getItem('pp_last_imported_projects');
+    if (!idsStr) {
+        alert("No hay registros de la última importación masiva en esta sesión.");
+        return;
+    }
+    
+    const ids = JSON.parse(idsStr);
+    if (ids.length === 0) return;
+    
+    if (confirm(`Estás a punto de eliminar permanentemente los ${ids.length} proyectos que cargaste en la última importación masiva. ¿Deseas continuar?`)) {
+        const btn = document.getElementById('btn-undo-import');
+        const orgHtml = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Deshaciendo...';
+        btn.disabled = true;
+        if(window.lucide) lucide.createIcons();
+        
+        try {
+            for (let i = 0; i < ids.length; i++) {
+                await fetchData('projects', 'DELETE', {id: ids[i]});
+            }
+            sessionStorage.removeItem('pp_last_imported_projects');
+            
+            mockProjects = await fetchData('projects');
+            renderProjects();
+            renderDashboard();
+            alert("Los proyectos de la última carga masiva han sido eliminados correctamente.");
+        } catch(e) {
+            alert("Ocurrió un error al deshacer la importación.");
+        } finally {
+            btn.innerHTML = orgHtml;
+            btn.disabled = false;
+            if(window.lucide) lucide.createIcons();
+        }
+    }
+};
+
 const renderProjects = () => {
+  const undoBtn = document.getElementById('btn-undo-import');
+  if (undoBtn) {
+      const hasLastImport = sessionStorage.getItem('pp_last_imported_projects');
+      undoBtn.style.display = hasLastImport ? 'inline-flex' : 'none';
+  }
+  
   // Limpiar columnas
   document.querySelectorAll('.kanban-cards').forEach(el => el.innerHTML = '');
   document.getElementById('count-Planificación').textContent = '0';

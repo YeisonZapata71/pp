@@ -144,6 +144,7 @@
                         <div style="display:flex; gap:1rem;">
                             <input type="file" id="excel-project-upload" accept=".xlsx, .xls" style="display:none" onchange="handleProjectBulkUpload(event)">
                             <button class="btn btn-secondary" onclick="document.getElementById('excel-project-upload').click()"><i data-lucide="file-spreadsheet"></i> Importar Proyectos</button>
+                            <button class="btn btn-danger" onclick="undoLastProjectImport()" id="btn-undo-import" style="display:none; background-color: var(--danger);"><i data-lucide="undo-2"></i> Deshacer Última Carga</button>
                             <button class="btn btn-primary" onclick="openModalProject()"><i data-lucide="plus"></i> Nuevo Proyecto</button>
                         </div>
                     </div>
