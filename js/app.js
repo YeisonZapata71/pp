@@ -40,13 +40,26 @@ const loadDataFromAPI = async () => {
             fetchData('payments'),
             fetchData('users')
         ]);
-        globalBudgets = resBudgets;
-        mockJACs = resJACs;
-        mockDirectoryJACs = resDirJACs;
-        mockProjects = resProjects;
-        mockPayments = resPayments;
-        mockUsers = resUsers;
-    } catch(e) { console.error("Error cargando DB:", e); }
+        
+        const checkError = (res, name) => {
+            if (res && res.status === 'error') {
+                showToast(`Error cargando ${name}: ${res.message}`, "error");
+                return [];
+            }
+            return Array.isArray(res) ? res : [];
+        };
+
+        globalBudgets = checkError(resBudgets, 'Presupuestos');
+        mockJACs = checkError(resJACs, 'JACs');
+        mockDirectoryJACs = checkError(resDirJACs, 'Directorio');
+        mockProjects = checkError(resProjects, 'Proyectos');
+        mockPayments = checkError(resPayments, 'Pagos');
+        mockUsers = checkError(resUsers, 'Usuarios');
+        
+    } catch(e) { 
+        console.error("Error crítico cargando DB:", e);
+        showToast("Error crítico al cargar datos", "error");
+    }
 };
 
 
