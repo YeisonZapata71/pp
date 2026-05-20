@@ -15,14 +15,18 @@ require_once 'config.php';
 $conn = getDB();
 
 // --- AUTO-MIGRATION CHECK ---
-$check = $conn->query("SHOW COLUMNS FROM users LIKE 'email'");
-if ($check->num_rows == 0) {
-    // Si la columna email no existe, ejecutamos la migración automáticamente
-    $conn->query("ALTER TABLE users CHANGE username email VARCHAR(150) NOT NULL UNIQUE");
-    $conn->query("UPDATE users SET email = 'admin@girardota.gov.co', password = 'Admin2026*' WHERE role = 'admin'");
-    $conn->query("UPDATE users SET email = 'gestor@girardota.gov.co', password = 'Gestor2026*' WHERE role = 'gestor'");
-    $conn->query("UPDATE users SET email = 'auditor@girardota.gov.co', password = 'Auditor2026*' WHERE role = 'auditor'");
-    $conn->query("UPDATE users SET email = 'lector@girardota.gov.co', password = 'Lector2026*' WHERE role = 'lector'");
+try {
+    $check = $conn->query("SHOW COLUMNS FROM users LIKE 'email'");
+    if ($check && $check->num_rows == 0) {
+        // Si la columna email no existe, ejecutamos la migración automáticamente
+        $conn->query("ALTER TABLE users CHANGE username email VARCHAR(150) NOT NULL UNIQUE");
+        $conn->query("UPDATE users SET email = 'admin@girardota.gov.co', password = 'Admin2026*' WHERE role = 'admin'");
+        $conn->query("UPDATE users SET email = 'gestor@girardota.gov.co', password = 'Gestor2026*' WHERE role = 'gestor'");
+        $conn->query("UPDATE users SET email = 'auditor@girardota.gov.co', password = 'Auditor2026*' WHERE role = 'auditor'");
+        $conn->query("UPDATE users SET email = 'lector@girardota.gov.co', password = 'Lector2026*' WHERE role = 'lector'");
+    }
+} catch (Throwable $e) {
+    // Ignore migration errors (e.g. if another concurrent request already ran the ALTER TABLE)
 }
 // ----------------------------
 
