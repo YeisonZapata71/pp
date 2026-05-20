@@ -39,6 +39,9 @@ $method = $_SERVER['REQUEST_METHOD'];
 // Helper para obtener arreglos rápido
 function fetchAll($conn, $sql, $types = "", ...$params) {
     $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        throw new Exception("SQL Prepare Error: " . $conn->error . " | Query: " . $sql);
+    }
     if ($types) {
         $stmt->bind_param($types, ...$params);
     }
@@ -218,9 +221,11 @@ try {
                 try {
                     if (isset($input['id']) && $input['id']) {
                          $stmt = $conn->prepare("UPDATE users SET name=?, email=?, password=?, role=? WHERE id=?");
+                         if (!$stmt) throw new Exception($conn->error);
                          $stmt->bind_param("ssssi", $input['name'], $input['email'], $input['password'], $input['role'], $input['id']);
                     } else {
                          $stmt = $conn->prepare("INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)");
+                         if (!$stmt) throw new Exception($conn->error);
                          $stmt->bind_param("ssss", $input['email'], $input['password'], $input['name'], $input['role']);
                     }
                     $stmt->execute();
@@ -230,9 +235,11 @@ try {
                         // Fallback si la base de datos no tiene la columna email
                         if (isset($input['id']) && $input['id']) {
                              $stmt2 = $conn->prepare("UPDATE users SET name=?, username=?, password=?, role=? WHERE id=?");
+                             if (!$stmt2) throw new Exception($conn->error);
                              $stmt2->bind_param("ssssi", $input['name'], $input['email'], $input['password'], $input['role'], $input['id']);
                         } else {
                              $stmt2 = $conn->prepare("INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)");
+                             if (!$stmt2) throw new Exception($conn->error);
                              $stmt2->bind_param("ssss", $input['email'], $input['password'], $input['name'], $input['role']);
                         }
                         $stmt2->execute();

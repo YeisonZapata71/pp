@@ -21,8 +21,7 @@ const fetchData = async (endpoint, method="GET", body=null) => {
             return JSON.parse(text);
         } catch(e) {
             console.error("Invalid JSON from server:", text);
-            alert("Error en Servidor: " + text.substring(0,100));
-            return { status: "error" };
+            return { status: "error", message: text ? "Invalid JSON: " + text.substring(0, 50) : "[RESPUESTA VACIA DEL SERVIDOR]" };
         }
     } catch(e) {
         alert("Error de Conexión: " + e.message);
