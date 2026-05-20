@@ -73,7 +73,7 @@ const handleLogin = async (e) => {
   const btn = e.target.querySelector('button[type="submit"]');
   const orgText = btn.textContent;
   
-  const user = document.getElementById('login-user').value;
+  const user = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-pass').value;
   
   if (!user || !pass) return;
@@ -83,7 +83,7 @@ const handleLogin = async (e) => {
   if(window.lucide) lucide.createIcons();
 
   try {
-      const res = await fetchData('login', 'POST', {username: user, password: pass});
+      const res = await fetchData('login', 'POST', {email: user, password: pass});
       
       if (res.status === 'success' && res.user) {
         sessionStorage.setItem('pp_logged_in', 'true');
@@ -276,9 +276,17 @@ const renderDashboard = () => {
     return;
   }
   
+  const activeRole = sessionStorage.getItem('pp_role') || 'lector';
   jacsOfYear.forEach(jac => {
     const totalJac = (parseFloat(jac.assigned) || 0) + (parseFloat(jac.addition) || 0);
     const progress = totalJac > 0 ? ((parseFloat(jac.paid) || 0) / totalJac) * 100 : 0;
+    
+    const actionsHtml = activeRole === 'admin' ? `
+        <div class="jac-actions">
+          <button class="btn-icon" onclick="editJac(${jac.id})" title="Editar Asignación"><i data-lucide="edit-2" style="width:16px; height:16px"></i></button>
+          <button class="btn-icon btn-icon-danger" onclick="deleteJac(${jac.id})" title="Eliminar JAC"><i data-lucide="trash-2" style="width:16px; height:16px"></i></button>
+        </div>
+    ` : '';
     
     const card = document.createElement('div');
     card.className = 'glass-panel jac-card';
@@ -288,10 +296,7 @@ const renderDashboard = () => {
           <span class="jac-name">${jac.name}</span>
           <span class="jac-status">${jac.projects} Proyecto(s)</span>
         </div>
-        <div class="jac-actions">
-          <button class="btn-icon" onclick="editJac(${jac.id})" title="Editar Asignación"><i data-lucide="edit-2" style="width:16px; height:16px"></i></button>
-          <button class="btn-icon btn-icon-danger" onclick="deleteJac(${jac.id})" title="Eliminar JAC"><i data-lucide="trash-2" style="width:16px; height:16px"></i></button>
-        </div>
+        ${actionsHtml}
       </div>
       <div class="jac-budgets">
         <div class="budget-item">
@@ -548,7 +553,21 @@ const renderDirectory = () => {
     return;
   }
   
+  const activeRole = sessionStorage.getItem('pp_role') || 'lector';
+  const canEditOrDelete = activeRole === 'admin' || activeRole === 'gestor';
+  
   mockDirectoryJACs.forEach(jac => {
+    const actionsHtml = canEditOrDelete ? `
+        <div style="display:flex; gap:0.5rem; margin-top:auto;">
+          <button class="btn btn-secondary" onclick="editDirectoryJac(${jac.id})" style="flex:1; padding:0.5rem; font-size:0.85rem; justify-content:center;">
+            <i data-lucide="edit" style="width:16px; height:16px;"></i> Editar
+          </button>
+          <button class="btn" onclick="deleteDirectoryJac(${jac.id})" style="flex:1; padding:0.5rem; font-size:0.85rem; color:var(--danger); border:1px solid #FECACA; background:#FEF2F2; justify-content:center;">
+            <i data-lucide="trash-2" style="width:16px; height:16px;"></i> Borrar
+          </button>
+        </div>
+    ` : '';
+    
     const card = document.createElement('div');
     card.className = 'jac-card glass-panel';
     card.innerHTML = `
@@ -579,14 +598,7 @@ const renderDirectory = () => {
           </div>
         </div>
         
-        <div style="display:flex; gap:0.5rem; margin-top:auto;">
-          <button class="btn btn-secondary" onclick="editDirectoryJac(${jac.id})" style="flex:1; padding:0.5rem; font-size:0.85rem; justify-content:center;">
-            <i data-lucide="edit" style="width:16px; height:16px;"></i> Editar
-          </button>
-          <button class="btn" onclick="deleteDirectoryJac(${jac.id})" style="flex:1; padding:0.5rem; font-size:0.85rem; color:var(--danger); border:1px solid #FECACA; background:#FEF2F2; justify-content:center;">
-            <i data-lucide="trash-2" style="width:16px; height:16px;"></i> Borrar
-          </button>
-        </div>
+        ${actionsHtml}
       </div>
     `;
     container.appendChild(card);
@@ -940,6 +952,102 @@ const populateJacSelect = () => {
   });
 };
 
+const applyProjectModalPermissions = (isNew) => {
+  const activeRole = sessionStorage.getItem('pp_role') || 'lector';
+  const canWriteProject = activeRole === 'admin' || activeRole === 'gestor';
+  
+  // 1. General banner
+  const banner = document.getElementById('project-read-only-banner');
+  if (banner) {
+    if (canWriteProject) {
+      banner.classList.add('hidden');
+      banner.style.display = 'none';
+    } else {
+      banner.classList.remove('hidden');
+      banner.style.display = 'flex';
+      const bannerText = banner.querySelector('span');
+      if (bannerText) {
+        if (activeRole === 'auditor') {
+          bannerText.innerHTML = 'Estás en modo <strong>Solo Lectura</strong> para detalles del proyecto, pero puedes agregar anotaciones en la pestaña <strong>Bitácora</strong>.';
+        } else {
+          bannerText.innerHTML = 'Estás visualizando este proyecto en modo <strong>Solo Lectura</strong> debido a tu rol.';
+        }
+      }
+    }
+  }
+
+  // 2. Lock/unlock form inputs
+  const inputsToToggle = [
+    'proj-year', 'proj-jac', 'proj-title', 'proj-status', 
+    'proj-budget', 'proj-has-addition', 'proj-addition', 'proj-desc'
+  ];
+  inputsToToggle.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.disabled = !canWriteProject;
+    }
+  });
+
+  // 3. Document / Photo Upload zones
+  const uploadZone = document.querySelector('#ptab-docs .upload-zone');
+  if (uploadZone) {
+    uploadZone.style.pointerEvents = canWriteProject ? 'auto' : 'none';
+    uploadZone.style.opacity = canWriteProject ? '1' : '0.6';
+    const uploadText = uploadZone.querySelector('p');
+    if (uploadText) {
+      uploadText.textContent = canWriteProject 
+        ? 'Haz clic aquí para cargar Contratos o Actas (.pdf)' 
+        : 'Carga de archivos deshabilitada (Solo Lectura)';
+    }
+  }
+  
+  const photoUploadZone = document.querySelector('#ptab-photos .btn-secondary');
+  if (photoUploadZone) {
+    photoUploadZone.style.pointerEvents = canWriteProject ? 'auto' : 'none';
+    photoUploadZone.style.opacity = canWriteProject ? '1' : '0.6';
+    photoUploadZone.innerHTML = canWriteProject
+      ? '<i data-lucide="image-plus" style="width:18px; height:18px;"></i> Elegir Foto'
+      : '<i data-lucide="shield-alert" style="width:18px; height:18px;"></i> Carga Deshabilitada';
+  }
+  const photoStageSelect = document.getElementById('proj-photo-stage');
+  if (photoStageSelect) {
+    photoStageSelect.disabled = !canWriteProject;
+  }
+
+  // 4. Notes input & button (Bitácora)
+  const noteInput = document.getElementById('proj-note-input');
+  // Auditor can write notes, Lector cannot
+  const canWriteNotes = activeRole === 'admin' || activeRole === 'gestor' || activeRole === 'auditor';
+  if (noteInput) {
+    noteInput.disabled = !canWriteNotes;
+    noteInput.placeholder = canWriteNotes 
+      ? 'Escribir nota de auditoría u observación...' 
+      : 'No tienes permisos para agregar anotaciones en la bitácora.';
+  }
+  const noteBtn = document.querySelector('#ptab-notes button');
+  if (noteBtn) {
+    noteBtn.disabled = !canWriteNotes;
+    noteBtn.style.opacity = canWriteNotes ? '1' : '0.6';
+  }
+
+  // 5. Submit and Delete buttons
+  const submitBtn = document.querySelector('#form-project button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.style.display = canWriteProject ? 'inline-flex' : 'none';
+  }
+  
+  const deleteBtn = document.getElementById('btn-delete-proj');
+  if (deleteBtn) {
+    if (canWriteProject && !isNew) {
+      deleteBtn.style.display = 'inline-flex';
+    } else {
+      deleteBtn.style.display = 'none';
+    }
+  }
+  
+  if (window.lucide) lucide.createIcons();
+};
+
 const openModalProject = () => {
   // IMPORTANTE: reset() ANTES de repoblar selects para no borrarlos
   document.getElementById('form-project').reset();
@@ -960,6 +1068,9 @@ const openModalProject = () => {
 
   document.getElementById('modal-project-title').textContent = 'Registrar Nuevo Proyecto';
   document.getElementById('btn-delete-proj').style.display = 'none';
+  
+  applyProjectModalPermissions(true);
+  
   openModal('modal-project');
 };
 
@@ -990,6 +1101,8 @@ const editProject = (id) => {
   
   document.getElementById('modal-project-title').textContent = 'Editar Proyecto';
   document.getElementById('btn-delete-proj').style.display = 'inline-flex';
+  
+  applyProjectModalPermissions(false);
   
   openModal('modal-project');
 };
@@ -1193,10 +1306,16 @@ const handleMockNoteAdd = async () => {
 };
 
 const renderProjectAssets = (proj) => {
+  const activeRole = sessionStorage.getItem('pp_role') || 'lector';
+  const canWriteProjs = activeRole === 'admin' || activeRole === 'gestor';
+  
   const listDocs = document.getElementById('proj-docs-list');
   listDocs.innerHTML = '';
   if(proj.documents && proj.documents.length) {
      proj.documents.forEach((d, idx) => {
+       const btnDelete = canWriteProjs 
+           ? `<button type="button" class="btn-icon btn-icon-danger" onclick="deleteMockDocument(${proj.id}, ${idx})"><i data-lucide="trash-2" style="width:16px;"></i></button>` 
+           : '';
        listDocs.innerHTML += `
          <div class="doc-item" style="display:flex; justify-content:space-between; align-items:center;">
             <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -1206,7 +1325,7 @@ const renderProjectAssets = (proj) => {
                   <small style="color:var(--text-muted)">Subido: ${d.date}</small>
                </div>
             </div>
-            <button type="button" class="btn-icon btn-icon-danger" onclick="deleteMockDocument(${proj.id}, ${idx})"><i data-lucide="trash-2" style="width:16px;"></i></button>
+            ${btnDelete}
          </div>
        `;
      });
@@ -1226,10 +1345,13 @@ const renderProjectAssets = (proj) => {
      list.innerHTML = '';
      if(pObj[categoryName] && pObj[categoryName].length > 0) {
         pObj[categoryName].forEach((b64, idx) => {
+          const btnDelete = canWriteProjs 
+              ? `<button type="button" onclick="deleteMockPhoto(${proj.id}, '${categoryName}', ${idx})" style="position:absolute; top:-5px; right:-5px; background:white; border-radius:50%; border:1px solid #fee2e2; color:var(--danger); padding:2px; cursor:pointer;"><i data-lucide="x" style="width:14px; height:14px;"></i></button>` 
+              : '';
           list.innerHTML += `
             <div style="position:relative; width:100%; pt-1;">
               <img src="${b64}" style="width:100%; height:80px; object-fit:cover; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-              <button type="button" onclick="deleteMockPhoto(${proj.id}, '${categoryName}', ${idx})" style="position:absolute; top:-5px; right:-5px; background:white; border-radius:50%; border:1px solid #fee2e2; color:var(--danger); padding:2px; cursor:pointer;"><i data-lucide="x" style="width:14px; height:14px;"></i></button>
+              ${btnDelete}
             </div>`;
         });
      } else {
@@ -1442,7 +1564,7 @@ const renderConfigUsers = () => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><strong>${u.name}</strong></td>
-      <td><span style="font-family:monospace; color:var(--text-muted)">@${u.username}</span></td>
+      <td><span style="font-family:monospace; color:var(--text-muted)">${u.email}</span></td>
       <td>${roleBadge}</td>
       <td>
         <button class="btn-icon" onclick="openModalUser(${u.id})" title="Editar Perfil">
@@ -1462,7 +1584,7 @@ const openModalUser = (id) => {
     document.getElementById('modal-user-title').textContent = 'Editar Funcionario';
     document.getElementById('user-id').value = u.id;
     document.getElementById('user-name').value = u.name;
-    document.getElementById('user-username').value = u.username;
+    document.getElementById('user-email').value = u.email;
     document.getElementById('user-pass').value = u.password;
     document.getElementById('user-role').value = u.role || 'gestor';
   } else {
@@ -1476,29 +1598,200 @@ const openModalUser = (id) => {
 
 const handleUserSubmit = async (e) => {
   e.preventDefault();
+  const btn = e.target.querySelector('button[type="submit"]');
+  const orgText = btn.textContent;
+  
   const idStr = document.getElementById('user-id').value;
   const name = document.getElementById('user-name').value;
-  const username = document.getElementById('user-username').value;
+  const email = document.getElementById('user-email').value;
   const password = document.getElementById('user-pass').value;
   const role = document.getElementById('user-role').value;
   
-  await fetchData('users', 'POST', {
-      id: idStr ? parseInt(idStr, 10) : null,
-      name, username, password, role
-  });
+  btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Guardando...';
+  btn.disabled = true;
+  if(window.lucide) lucide.createIcons();
   
-  await loadDataFromAPI();
-  
-  closeModal('modal-user');
-  renderConfigUsers();
+  try {
+      const res = await fetchData('users', 'POST', {
+          id: idStr ? parseInt(idStr, 10) : null,
+          name, email, password, role
+      });
+      
+      if (res && res.status === 'error') {
+          alert(res.message || "Error al guardar el usuario");
+          return;
+      }
+      
+      await loadDataFromAPI();
+      
+      closeModal('modal-user');
+      renderConfigUsers();
+      
+      // Show welcome email if it's a new user
+      if (!idStr) {
+          showSimulatedEmail(email, 'welcome', { name, password, role });
+      }
+  } finally {
+      btn.innerHTML = orgText;
+      btn.disabled = false;
+  }
+};
+
+// -----------------------------------------
+// FUNCIONES DE RECUPERACIÓN DE CONTRASEÑA Y CORREO VISUAL
+// -----------------------------------------
+const openModalRecover = () => {
+    openModal('modal-recover');
+};
+
+const handleRecoverSubmit = async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const orgText = btn.textContent;
+    const email = document.getElementById('recover-email').value;
+    
+    btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Buscando...';
+    btn.disabled = true;
+    if(window.lucide) lucide.createIcons();
+    
+    try {
+        const res = await fetchData('recover_password', 'POST', { email });
+        if (res.status === 'success') {
+            closeModal('modal-recover');
+            document.getElementById('change-password-target-email').textContent = email;
+            openModal('modal-change-password');
+        } else {
+            alert(res.message);
+        }
+    } catch (e) {
+        alert("Error de conexión");
+    } finally {
+        btn.innerHTML = orgText;
+        btn.disabled = false;
+    }
+};
+
+const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('change-password-target-email').textContent;
+    const newPass = document.getElementById('new-password').value;
+    const confirmPass = document.getElementById('confirm-password').value;
+    
+    if (newPass !== confirmPass) {
+        alert("Las contraseñas no coinciden");
+        return;
+    }
+    
+    const btn = e.target.querySelector('button[type="submit"]');
+    const orgText = btn.textContent;
+    btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Guardando...';
+    btn.disabled = true;
+    if(window.lucide) lucide.createIcons();
+    
+    try {
+        const res = await fetchData('change_password', 'POST', { email, newPassword: newPass });
+        if (res.status === 'success') {
+            closeModal('modal-change-password');
+            document.getElementById('form-change-password').reset();
+            
+            // Show password changed email
+            showSimulatedEmail(email, 'password_changed', { name: res.user?.name || 'Funcionario' });
+        } else {
+            alert(res.message);
+        }
+    } catch (e) {
+        alert("Error al actualizar la contraseña");
+    } finally {
+        btn.innerHTML = orgText;
+        btn.disabled = false;
+    }
+};
+
+const showSimulatedEmail = (toEmail, type, data) => {
+    document.getElementById('email-preview-to').textContent = toEmail;
+    
+    const dateOpts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    document.getElementById('email-preview-date').textContent = new Date().toLocaleDateString('es-CO', dateOpts);
+    
+    let htmlContent = '';
+    
+    if (type === 'welcome') {
+        htmlContent = `
+            <h2 style="color: var(--primary); margin-top: 0;">¡Bienvenido a Presupuesto Participativo!</h2>
+            <p>Hola <strong>${data.name}</strong>,</p>
+            <p>Se ha creado exitosamente tu cuenta institucional para acceder a la plataforma de gestión del Presupuesto Participativo de la Alcaldía de Girardota.</p>
+            <div style="background: #F9FAFB; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; border: 1px solid #E5E7EB;">
+                <p style="margin: 0 0 0.5rem 0;"><strong>Rol Asignado:</strong> <span style="text-transform: capitalize;">${data.role}</span></p>
+                <p style="margin: 0 0 0.5rem 0;"><strong>Correo de Acceso:</strong> ${toEmail}</p>
+                <p style="margin: 0;"><strong>Contraseña Temporal:</strong> <code>${data.password}</code></p>
+            </div>
+            <p style="color: #4B5563;">Por favor, por tu seguridad, cambia esta contraseña la próxima vez que inicies sesión en la plataforma.</p>
+            <br>
+            <p style="margin: 0;">Saludos cordiales,</p>
+            <p style="margin: 0; font-weight: 600;">Equipo de Soporte y Seguridad IT</p>
+            <p style="margin: 0; font-size: 0.85rem;">Alcaldía de Girardota</p>
+        `;
+    } else if (type === 'password_changed') {
+        htmlContent = `
+            <h2 style="color: var(--primary); margin-top: 0;">Actualización de Credenciales</h2>
+            <p>Hola <strong>${data.name}</strong>,</p>
+            <p>Te confirmamos que la contraseña de tu cuenta institucional (<span style="color: var(--primary); font-weight: 500;">${toEmail}</span>) ha sido actualizada de manera exitosa recientemente.</p>
+            <div style="background: #FFFBEB; border-left: 4px solid #F59E0B; padding: 1rem; margin: 1.5rem 0;">
+                <p style="margin: 0; color: #92400E; font-size: 0.9rem;">
+                    <strong>Aviso de Seguridad:</strong> Si no realizaste esta acción, por favor comunícate inmediatamente con el área de soporte tecnológico de la Alcaldía de Girardota.
+                </p>
+            </div>
+            <p style="color: #4B5563;">Ya puedes utilizar tu nueva contraseña para ingresar al sistema de Presupuesto Participativo.</p>
+            <br>
+            <p style="margin: 0;">Saludos cordiales,</p>
+            <p style="margin: 0; font-weight: 600;">Equipo de Soporte y Seguridad IT</p>
+            <p style="margin: 0; font-size: 0.85rem;">Alcaldía de Girardota</p>
+        `;
+    }
+    
+    document.getElementById('email-preview-content').innerHTML = htmlContent;
+    openModal('modal-email-preview');
 };
 
 const applyPermissions = () => {
-    const activeRole = sessionStorage.getItem('pp_role');
+    const activeRole = sessionStorage.getItem('pp_role') || 'lector';
+    
+    // 1. Perfil de Usuario en el Sidebar
+    const sidebarName = document.getElementById('sidebar-user-name');
+    const sidebarRoleContainer = document.getElementById('sidebar-user-role-container');
+    if (sidebarName && sidebarRoleContainer) {
+         const name = sessionStorage.getItem('pp_user_name') || 'Invitado';
+         sidebarName.textContent = name;
+         
+         let roleText = 'Veedor Ciudadano';
+         let bg = '#64748B'; // slate
+         let icon = 'eye';
+         
+         if (activeRole === 'admin') {
+             roleText = 'Administrador';
+             bg = 'var(--primary)';
+             icon = 'shield-check';
+         } else if (activeRole === 'gestor') {
+             roleText = 'Gestor Proyectos';
+             bg = '#2563EB';
+             icon = 'folder-kanban';
+         } else if (activeRole === 'auditor') {
+             roleText = 'Auditor Financiero';
+             bg = '#7C3AED';
+             icon = 'landmark';
+         }
+         
+         sidebarRoleContainer.innerHTML = `
+             <span class="role-badge" style="background: ${bg}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;">
+                 <i data-lucide="${icon}" style="width: 12px; height: 12px;"></i> ${roleText}
+             </span>
+         `;
+    }
+    
+    // 2. Control de visibilidad del menú configuración
     const menuConfig = document.getElementById('menu-config');
     const dividerConfig = document.getElementById('divider-config');
     
-    // Si NO es admin, no puede entrar a la caja de seguridad.
     if (activeRole !== 'admin') {
         if(menuConfig) menuConfig.style.display = 'none';
         if(dividerConfig) dividerConfig.style.display = 'none';
@@ -1511,6 +1804,46 @@ const applyPermissions = () => {
         if(menuConfig) menuConfig.style.display = 'block';
         if(dividerConfig) dividerConfig.style.display = 'block';
     }
+    
+    // 3. Control de botones de acción en los módulos
+    
+    // -- Módulo Dashboard (Solo admin asigna presupuestos de JACs)
+    const btnAddJac = document.getElementById('btn-dashboard-add-jac');
+    if (btnAddJac) {
+         btnAddJac.style.display = activeRole === 'admin' ? 'inline-flex' : 'none';
+    }
+    
+    // -- Módulo Comités y JACs (admin y gestor escriben)
+    const btnComitesDelAll = document.getElementById('btn-comites-delete-all');
+    const btnComitesImport = document.getElementById('btn-comites-import');
+    const btnComitesAdd = document.getElementById('btn-comites-add');
+    const canWriteComites = activeRole === 'admin' || activeRole === 'gestor';
+    
+    if (btnComitesDelAll) btnComitesDelAll.style.display = (activeRole === 'admin') ? 'inline-flex' : 'none'; // Borrar todo solo admin
+    if (btnComitesImport) btnComitesImport.style.display = canWriteComites ? 'inline-flex' : 'none';
+    if (btnComitesAdd) btnComitesAdd.style.display = canWriteComites ? 'inline-flex' : 'none';
+    
+    // -- Módulo Proyectos (admin y gestor escriben)
+    const btnProjsImport = document.getElementById('btn-projects-import');
+    const btnProjsAdd = document.getElementById('btn-projects-add');
+    const btnProjsUndo = document.getElementById('btn-undo-import');
+    const canWriteProjs = activeRole === 'admin' || activeRole === 'gestor';
+    
+    if (btnProjsImport) btnProjsImport.style.display = canWriteProjs ? 'inline-flex' : 'none';
+    if (btnProjsAdd) btnProjsAdd.style.display = canWriteProjs ? 'inline-flex' : 'none';
+    if (btnProjsUndo && btnProjsUndo.style.display !== 'none') {
+        btnProjsUndo.style.display = canWriteProjs ? 'inline-flex' : 'none';
+    }
+    
+    // -- Módulo Avances y Pagos (admin y auditor escriben)
+    const btnPaymentsAdd = document.getElementById('btn-payments-add');
+    const canWritePayments = activeRole === 'admin' || activeRole === 'auditor';
+    
+    if (btnPaymentsAdd) {
+        btnPaymentsAdd.style.display = canWritePayments ? 'inline-flex' : 'none';
+    }
+    
+    if(window.lucide) lucide.createIcons();
 };
 
 // Inicialización

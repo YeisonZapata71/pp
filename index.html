@@ -24,12 +24,15 @@
             <p>Portal Administrativo - Municipio de Girardota<br>Subsecretaría de Participación Ciudadana</p>
             <form class="auth-form" id="form-login" onsubmit="handleLogin(event)">
                 <div class="form-group">
-                    <label class="form-label" for="login-user">Usuario de Alcaldía</label>
-                    <input type="text" id="login-user" class="form-control" autocomplete="username" placeholder="Ej. admin" required>
+                    <label class="form-label" for="login-email">Correo Institucional</label>
+                    <input type="email" id="login-email" class="form-control" autocomplete="username" placeholder="ejemplo@girardota.gov.co" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="login-pass">Contraseña de Seguridad</label>
                     <input type="password" id="login-pass" class="form-control" autocomplete="current-password" placeholder="***" required>
+                </div>
+                <div style="text-align: right; margin-top: 0.5rem;">
+                    <a href="#" onclick="openModalRecover()" style="color: var(--primary); font-size: 0.85rem; text-decoration: none; font-weight: 500;">¿Olvidaste tu contraseña?</a>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;">
                     <i data-lucide="log-in"></i> Iniciar Sesión Seguro
@@ -48,6 +51,14 @@
             <div class="sidebar-header">
                 <div class="logo">
                     <img src="PP_Logo-02.png" alt="Logo Panel Lateral" style="max-height: 60px; width: auto; object-fit: contain;">
+                </div>
+            </div>
+            <!-- Perfil de Usuario Premium -->
+            <div id="user-profile-sidebar" style="padding: 1rem 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 0.4rem;">
+                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Funcionario</div>
+                <div id="sidebar-user-name" style="font-size: 1rem; font-weight: 700; color: white; line-height: 1.2; word-break: break-word;">Cargando...</div>
+                <div id="sidebar-user-role-container" style="margin-top: 0.15rem;">
+                    <!-- Badge del rol inyectado dinámicamente -->
                 </div>
             </div>
             <ul class="nav-links">
@@ -92,7 +103,7 @@
                 <section>
                     <div class="section-title">
                         <h2>Distribución por Junta de Acción Comunal (JAC)</h2>
-                        <button class="btn btn-primary" onclick="openModal('modal-jac')"><i data-lucide="plus"></i> Asignar a JAC</button>
+                        <button class="btn btn-primary" id="btn-dashboard-add-jac" onclick="openModal('modal-jac')"><i data-lucide="plus"></i> Asignar a JAC</button>
                     </div>
                     <div class="jacs-grid" id="jacs-container">
                         <!-- Tarjetas de JACs se renderizan por JS -->
@@ -115,10 +126,10 @@
                     <div class="section-title">
                         <h2>Listado General</h2>
                         <div style="display:flex; gap:1rem;">
-                            <button class="btn btn-danger" onclick="deleteAllDirectoryJACs()" style="background-color: var(--danger);"><i data-lucide="trash-2"></i> Borrar Todo</button>
+                            <button class="btn btn-danger" id="btn-comites-delete-all" onclick="deleteAllDirectoryJACs()" style="background-color: var(--danger);"><i data-lucide="trash-2"></i> Borrar Todo</button>
                             <input type="file" id="excel-upload" accept=".xlsx, .xls, .csv" style="display:none" onchange="handleExcelBulkUpload(event)">
-                            <button class="btn btn-secondary" onclick="document.getElementById('excel-upload').click()"><i data-lucide="file-spreadsheet"></i> Carga Masiva</button>
-                            <button class="btn btn-primary" onclick="openModal('modal-directory-jac')"><i data-lucide="plus"></i> Añadir JAC</button>
+                            <button class="btn btn-secondary" id="btn-comites-import" onclick="document.getElementById('excel-upload').click()"><i data-lucide="file-spreadsheet"></i> Carga Masiva</button>
+                            <button class="btn btn-primary" id="btn-comites-add" onclick="openModal('modal-directory-jac')"><i data-lucide="plus"></i> Añadir JAC</button>
                         </div>
                     </div>
                     <div class="jacs-grid" id="directory-container">
@@ -146,9 +157,9 @@
                         <h2>Kanban por Estados</h2>
                         <div style="display:flex; gap:1rem;">
                             <input type="file" id="excel-project-upload" accept=".xlsx, .xls" style="display:none" onchange="handleProjectBulkUpload(event)">
-                            <button class="btn btn-secondary" onclick="document.getElementById('excel-project-upload').click()"><i data-lucide="file-spreadsheet"></i> Importar Proyectos</button>
+                            <button class="btn btn-secondary" id="btn-projects-import" onclick="document.getElementById('excel-project-upload').click()"><i data-lucide="file-spreadsheet"></i> Importar Proyectos</button>
                             <button class="btn btn-danger" onclick="undoLastProjectImport()" id="btn-undo-import" style="display:none; background-color: var(--danger);"><i data-lucide="undo-2"></i> Deshacer Última Carga</button>
-                            <button class="btn btn-primary" onclick="openModalProject()"><i data-lucide="plus"></i> Nuevo Proyecto</button>
+                            <button class="btn btn-primary" id="btn-projects-add" onclick="openModalProject()"><i data-lucide="plus"></i> Nuevo Proyecto</button>
                         </div>
                     </div>
                     <div class="kanban-board" id="kanban-container">
@@ -194,7 +205,7 @@
                 <section>
                     <div class="section-title">
                         <h2>Resumen por Junta (JAC)</h2>
-                        <button class="btn btn-primary" onclick="openModalPayment()"><i data-lucide="dollar-sign"></i> Nuevo Desembolso</button>
+                        <button class="btn btn-primary" id="btn-payments-add" onclick="openModalPayment()"><i data-lucide="dollar-sign"></i> Nuevo Desembolso</button>
                     </div>
                     <div class="table-container">
                         <table class="data-table">
@@ -373,9 +384,14 @@
     <!-- Modal: Crear/Editar Proyecto -->
     <div class="modal-overlay" id="modal-project">
         <div class="modal" style="width: 90%; max-width: 650px;">
-            <div class="modal-header">
+            <div class="modal-header" style="margin-bottom: 1rem;">
                 <h3 id="modal-project-title">Detalle del Proyecto</h3>
                 <button class="modal-close" onclick="closeModal('modal-project')"><i data-lucide="x"></i></button>
+            </div>
+            
+            <div id="project-read-only-banner" class="alert hidden" style="background:#FFFBEB; color:#B45309; border-color:#FDE68A; padding:0.75rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:0.85rem; border:1px solid #FDE68A; display:flex; align-items:center; gap:0.5rem;">
+                <i data-lucide="shield-alert" style="width:16px; height:16px; flex-shrink:0;"></i>
+                <span>Estás visualizando este proyecto en modo <strong>Solo Lectura</strong> debido a tu rol.</span>
             </div>
             
             <form id="form-project" onsubmit="handleProjectSubmit(event)">
@@ -587,8 +603,8 @@
                     <input type="text" id="user-name" class="form-control" placeholder="Ej. Juan Pérez" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="user-username">Usuario de Logueo</label>
-                    <input type="text" id="user-username" class="form-control" required>
+                    <label class="form-label" for="user-email">Correo Electrónico Institucional</label>
+                    <input type="email" id="user-email" class="form-control" placeholder="ejemplo@girardota.gov.co" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="user-pass">Contraseña</label>
@@ -597,8 +613,10 @@
                 <div class="form-group">
                     <label class="form-label" for="user-role">Privilegios (Rol)</label>
                     <select id="user-role" class="form-control" required>
-                        <option value="gestor">Gestor (Añade Proyectos y Pagos)</option>
-                        <option value="admin">Administrador Global (Restricción Total)</option>
+                        <option value="admin">Administrador (Control Total)</option>
+                        <option value="gestor">Gestor de Proyectos (Comités y Proyectos)</option>
+                        <option value="auditor">Auditor Financiero (Desembolsos e Historial)</option>
+                        <option value="lector">Veedor Ciudadano (Sólo Lectura)</option>
                     </select>
                 </div>
                 <div class="modal-footer">
@@ -632,8 +650,95 @@
         </div>
     </div>
 
+    <!-- Modal: Recuperar Contraseña (Solicitud de Correo) -->
+    <div class="modal-overlay" id="modal-recover">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 id="modal-recover-title">Recuperar Acceso</h3>
+                <button class="modal-close" onclick="closeModal('modal-recover')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-recover" onsubmit="handleRecoverSubmit(event)">
+                <div style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+                    Ingresa tu correo electrónico institucional para validar tu identidad.
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="recover-email">Correo Institucional</label>
+                    <input type="email" id="recover-email" class="form-control" placeholder="ejemplo@girardota.gov.co" required>
+                </div>
+                <div class="modal-footer" style="margin-top: 2rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-recover')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Validar Correo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Cambiar Contraseña (Ingreso Nueva Clave) -->
+    <div class="modal-overlay" id="modal-change-password">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 id="modal-change-password-title">Crear Nueva Contraseña</h3>
+                <button class="modal-close" onclick="closeModal('modal-change-password')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-change-password" onsubmit="handleChangePasswordSubmit(event)">
+                <div style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+                    Establece una nueva contraseña segura para la cuenta <strong id="change-password-target-email"></strong>.
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="new-password">Nueva Contraseña</label>
+                    <input type="password" id="new-password" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="confirm-password">Confirmar Contraseña</label>
+                    <input type="password" id="confirm-password" class="form-control" required>
+                </div>
+                <div class="modal-footer" style="margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Guardar y Continuar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Simulación de Bandeja de Entrada (Correo Visual) -->
+    <div class="modal-overlay" id="modal-email-preview" style="z-index: 10000; background-color: rgba(0, 0, 0, 0.85);">
+        <div class="modal" style="width: 95%; max-width: 700px; padding: 0; overflow: hidden; border-radius: 12px; background: #F3F4F6;">
+            <!-- Cabecera estilo App de Correo -->
+            <div style="background: white; padding: 1rem; border-bottom: 1px solid #E5E7EB; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: #4B5563; font-weight: 500; font-size: 0.9rem;">
+                    <i data-lucide="mail"></i> Bandeja de Entrada (Simulador)
+                </div>
+                <button class="modal-close" onclick="closeModal('modal-email-preview')" style="background: none; border: none; cursor: pointer; color: #9CA3AF;"><i data-lucide="x"></i></button>
+            </div>
+            
+            <!-- Cuerpo del Correo -->
+            <div style="padding: 2rem; background: white; margin: 1rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid #E5E7EB; padding-bottom: 1rem;">
+                    <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">
+                        Al
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; font-size: 1.1rem; color: #111827;">Soporte Alcaldía de Girardota</div>
+                        <div style="font-size: 0.85rem; color: #6B7280;">Para: <span id="email-preview-to" style="color: #374151;"></span></div>
+                    </div>
+                    <div style="margin-left: auto; font-size: 0.85rem; color: #6B7280;" id="email-preview-date">
+                        <!-- Date via JS -->
+                    </div>
+                </div>
+                
+                <div id="email-preview-content" style="color: #374151; line-height: 1.6; font-size: 0.95rem;">
+                    <!-- Contenido inyectado dinámicamente -->
+                </div>
+                
+                <div style="margin-top: 3rem; text-align: center; color: #9CA3AF; font-size: 0.75rem; border-top: 1px solid #E5E7EB; padding-top: 1rem;">
+                    Este es un correo generado automáticamente por el sistema de Presupuesto Participativo.<br>
+                    Alcaldía de Girardota - Todos los derechos reservados.
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts de la Aplicación -->
-    <script src="js/app.js?v=22.3"></script>
+    <script src="js/app.js?v=22.5"></script>
     <script>
         // Inicializar Iconos
         lucide.createIcons();

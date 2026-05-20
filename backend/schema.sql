@@ -1,8 +1,7 @@
 
-
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(150) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     name VARCHAR(100) NOT NULL,
     role VARCHAR(20) NOT NULL
@@ -57,6 +56,8 @@ CREATE TABLE IF NOT EXISTS payments (
     description VARCHAR(255)
 );
 
--- Insert demo users (contraseñas en texto plano por temas de simplificación rápida para este prototipo)
-INSERT INTO users (username, password, name, role) VALUES ('admin', '123', 'Alcalde General', 'admin');
-INSERT INTO users (username, password, name, role) VALUES ('gestor', '123', 'Gestor Operativo', 'gestor');
+-- Usuarios demo con correos institucionales (contraseñas en texto plano para prototipo)
+INSERT INTO users (email, password, name, role) VALUES ('admin@girardota.gov.co', 'Admin2026*', 'Alcalde General', 'admin');
+INSERT INTO users (email, password, name, role) VALUES ('gestor@girardota.gov.co', 'Gestor2026*', 'Gestor Operativo', 'gestor');
+INSERT INTO users (email, password, name, role) VALUES ('auditor@girardota.gov.co', 'Auditor2026*', 'Auditor de Control', 'auditor');
+INSERT INTO users (email, password, name, role) VALUES ('lector@girardota.gov.co', 'Lector2026*', 'Veedor Social', 'lector');

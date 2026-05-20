@@ -13,6 +13,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once 'config.php';
 
 $conn = getDB();
+
+// --- AUTO-MIGRATION CHECK ---
+$check = $conn->query("SHOW COLUMNS FROM users LIKE 'email'");
+if ($check->num_rows == 0) {
+    // Si la columna email no existe, ejecutamos la migración automáticamente
+    $conn->query("ALTER TABLE users CHANGE username email VARCHAR(150) NOT NULL UNIQUE");
+    $conn->query("UPDATE users SET email = 'admin@girardota.gov.co', password = 'Admin2026*' WHERE role = 'admin'");
+    $conn->query("UPDATE users SET email = 'gestor@girardota.gov.co', password = 'Gestor2026*' WHERE role = 'gestor'");
+    $conn->query("UPDATE users SET email = 'auditor@girardota.gov.co', password = 'Auditor2026*' WHERE role = 'auditor'");
+    $conn->query("UPDATE users SET email = 'lector@girardota.gov.co', password = 'Lector2026*' WHERE role = 'lector'");
+}
+// ----------------------------
+
 $endpoint = $_GET['endpoint'] ?? '';
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -37,9 +50,9 @@ $input = json_decode(file_get_contents('php://input'), true);
 switch ($endpoint) {
     case 'login':
         if ($method === 'POST') {
-            $user = $input['username'] ?? '';
+            $user = trim($input['email'] ?? $input['username'] ?? '');
             $pass = $input['password'] ?? '';
-            $data = fetchAll($conn, "SELECT id, username, name, role FROM users WHERE username = ? AND password = ?", "ss", $user, $pass);
+            $data = fetchAll($conn, "SELECT id, email, name, role FROM users WHERE email = ? AND password = ?", "ss", $user, $pass);
             if (count($data) > 0) {
                 echo json_encode(["status" => "success", "user" => $data[0]]);
             } else {
@@ -172,18 +185,54 @@ switch ($endpoint) {
 
     case 'users':
         if ($method === 'GET') {
-            echo json_encode(fetchAll($conn, "SELECT id, username, name, role FROM users"));
+            echo json_encode(fetchAll($conn, "SELECT id, email, name, role FROM users"));
         } elseif ($method === 'POST') {
-            if (isset($input['id']) && $input['id']) {
-                 // Por simplicidad, editamos de manera basica
-                 $stmt = $conn->prepare("UPDATE users SET name=?, username=?, password=?, role=? WHERE id=?");
-                 $stmt->bind_param("ssssi", $input['name'], $input['username'], $input['password'], $input['role'], $input['id']);
-            } else {
-                 $stmt = $conn->prepare("INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)");
-                 $stmt->bind_param("ssss", $input['username'], $input['password'], $input['name'], $input['role']);
+            try {
+                if (isset($input['id']) && $input['id']) {
+                     $stmt = $conn->prepare("UPDATE users SET name=?, email=?, password=?, role=? WHERE id=?");
+                     $stmt->bind_param("ssssi", $input['name'], $input['email'], $input['password'], $input['role'], $input['id']);
+                } else {
+                     $stmt = $conn->prepare("INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)");
+                     $stmt->bind_param("ssss", $input['email'], $input['password'], $input['name'], $input['role']);
+                }
+                $stmt->execute();
+                echo json_encode(["status" => "success"]);
+            } catch (Throwable $e) {
+                $errorMsg = "Error al guardar el usuario: " . $e->getMessage();
+                if (strpos($e->getMessage(), 'Duplicate entry') !== false || strpos($e->getMessage(), 'UNIQUE') !== false) {
+                    $errorMsg = "El correo electrónico ya está registrado.";
+                }
+                echo json_encode(["status" => "error", "message" => $errorMsg]);
             }
-            $stmt->execute();
-            echo json_encode(["status" => "success"]);
+        }
+        break;
+
+    case 'recover_password':
+        if ($method === 'POST') {
+            $email = $input['email'] ?? '';
+            $data = fetchAll($conn, "SELECT id, name, email FROM users WHERE email = ?", "s", $email);
+            if (count($data) > 0) {
+                echo json_encode(["status" => "success", "user" => $data[0]]);
+            } else {
+                echo json_encode(["status" => "error", "message" => "No existe una cuenta con este correo institucional."]);
+            }
+        }
+        break;
+
+    case 'change_password':
+        if ($method === 'POST') {
+            $email = $input['email'] ?? '';
+            $newPassword = $input['newPassword'] ?? '';
+            if ($email && $newPassword) {
+                $stmt = $conn->prepare("UPDATE users SET password = ? WHERE email = ?");
+                $stmt->bind_param("ss", $newPassword, $email);
+                $stmt->execute();
+                
+                $data = fetchAll($conn, "SELECT id, name, email FROM users WHERE email = ?", "s", $email);
+                echo json_encode(["status" => "success", "user" => $data[0] ?? null]);
+            } else {
+                echo json_encode(["status" => "error", "message" => "Datos incompletos"]);
+            }
         }
         break;
 

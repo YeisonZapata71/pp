@@ -106,21 +106,20 @@ CREATE TABLE `projects` (
 -- Estructura de tabla para la tabla `users`
 --
 
-CREATE TABLE `users` (
-  `id` int(11) NOT NULL,
-  `username` varchar(50) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `role` varchar(20) NOT NULL
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    role VARCHAR(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Volcado de datos para la tabla `users`
---
-
-INSERT INTO `users` (`id`, `username`, `password`, `name`, `role`) VALUES
-(1, 'admin', '123', 'Alcalde General', 'admin'),
-(2, 'gestor', '123', 'Gestor Operativo', 'gestor');
+-- Insert demo users (contraseñas en texto plano por temas de simplificación rápida para este prototipo)
+INSERT INTO users (email, password, name, role) VALUES ('admin@girardota.gov.co', 'Admin2026*', 'Alcalde General', 'admin');
+INSERT INTO users (email, password, name, role) VALUES ('gestor@girardota.gov.co', 'Gestor2026*', 'Gestor Operativo', 'gestor');
+INSERT INTO users (email, password, name, role) VALUES ('auditor@girardota.gov.co', 'Auditor2026*', 'Auditor de Control', 'auditor');
+INSERT INTO users (email, password, name, role) VALUES ('lector@girardota.gov.co', 'Lector2026*', 'Veedor Social', 'lector');
 
 --
 -- Índices para tablas volcadas
