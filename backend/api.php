@@ -226,11 +226,24 @@ try {
                     $stmt->execute();
                     echo json_encode(["status" => "success"]);
                 } catch (Throwable $e) {
-                    $errorMsg = "Error al guardar el usuario: " . $e->getMessage();
-                    if (strpos($e->getMessage(), 'Duplicate entry') !== false || strpos($e->getMessage(), 'UNIQUE') !== false) {
-                        $errorMsg = "El correo electrónico ya está registrado.";
+                    try {
+                        // Fallback si la base de datos no tiene la columna email
+                        if (isset($input['id']) && $input['id']) {
+                             $stmt2 = $conn->prepare("UPDATE users SET name=?, username=?, password=?, role=? WHERE id=?");
+                             $stmt2->bind_param("ssssi", $input['name'], $input['email'], $input['password'], $input['role'], $input['id']);
+                        } else {
+                             $stmt2 = $conn->prepare("INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)");
+                             $stmt2->bind_param("ssss", $input['email'], $input['password'], $input['name'], $input['role']);
+                        }
+                        $stmt2->execute();
+                        echo json_encode(["status" => "success"]);
+                    } catch (Throwable $e3) {
+                        $errorMsg = "Error al guardar el usuario: " . $e3->getMessage();
+                        if (strpos($e3->getMessage(), 'Duplicate entry') !== false || strpos($e3->getMessage(), 'UNIQUE') !== false) {
+                            $errorMsg = "El correo electrónico ya está registrado.";
+                        }
+                        echo json_encode(["status" => "error", "message" => $errorMsg]);
                     }
-                    echo json_encode(["status" => "error", "message" => $errorMsg]);
                 }
             }
             break;
