@@ -168,7 +168,7 @@ const showToast = (message, type = 'success') => {
     if (!toastContainer) {
         toastContainer = document.createElement('div');
         toastContainer.id = 'toast-container';
-        toastContainer.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;';
+        toastContainer.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;';
         document.body.appendChild(toastContainer);
     }
     
@@ -1642,6 +1642,11 @@ const openModalUser = (id) => {
     document.getElementById('form-user').reset();
     document.getElementById('user-role').value = 'gestor';
   }
+  const errorMsg = document.getElementById('user-error-msg');
+  if (errorMsg) {
+      errorMsg.style.display = 'none';
+      errorMsg.innerHTML = '';
+  }
   openModal('modal-user');
 };
 
@@ -1660,6 +1665,12 @@ const handleUserSubmit = async (e) => {
   btn.disabled = true;
   if(window.lucide) lucide.createIcons();
   
+  const errorMsg = document.getElementById('user-error-msg');
+  if (errorMsg) {
+      errorMsg.style.display = 'none';
+      errorMsg.innerHTML = '';
+  }
+
   try {
       const res = await fetchData('users', 'POST', {
           id: idStr ? parseInt(idStr, 10) : null,
@@ -1667,7 +1678,13 @@ const handleUserSubmit = async (e) => {
       });
       
       if (res && res.status === 'error') {
-          showToast(res.message || "Error al guardar el usuario", "error");
+          if (errorMsg) {
+              errorMsg.style.display = 'flex';
+              errorMsg.innerHTML = `<i data-lucide="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i> <span>${res.message || "Error al guardar el usuario"}</span>`;
+              if(window.lucide) lucide.createIcons();
+          } else {
+              showToast(res.message || "Error al guardar el usuario", "error");
+          }
           return;
       }
       
@@ -1675,6 +1692,7 @@ const handleUserSubmit = async (e) => {
       
       closeModal('modal-user');
       renderConfigUsers();
+
       
       // Mensaje de éxito UI
       showToast(idStr ? "Usuario actualizado correctamente" : "Funcionario creado con éxito");
