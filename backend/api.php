@@ -189,7 +189,17 @@ switch ($endpoint) {
 
     case 'users':
         if ($method === 'GET') {
-            echo json_encode(fetchAll($conn, "SELECT id, email, name, role FROM users"));
+            try {
+                echo json_encode(fetchAll($conn, "SELECT id, email, name, role FROM users"));
+            } catch (Throwable $e) {
+                // If it fails (e.g. email column doesn't exist yet because migration failed), fallback to username
+                try {
+                    $oldUsers = fetchAll($conn, "SELECT id, username as email, name, role FROM users");
+                    echo json_encode($oldUsers);
+                } catch (Throwable $e2) {
+                    echo json_encode(["status" => "error", "message" => $e2->getMessage()]);
+                }
+            }
         } elseif ($method === 'POST') {
             try {
                 if (isset($input['id']) && $input['id']) {

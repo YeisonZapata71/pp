@@ -1556,6 +1556,11 @@ const renderConfigUsers = () => {
   if (!table) return;
   table.innerHTML = '';
   
+  if (!Array.isArray(mockUsers)) {
+      table.innerHTML = '<tr><td colspan="5" class="text-center">Error al cargar usuarios. Intente recargar.</td></tr>';
+      return;
+  }
+  
   mockUsers.forEach(u => {
     const roleBadge = u.role === 'admin' 
         ? `<span style="background:var(--primary); color:white; padding:4px 8px; border-radius:12px; font-size:0.75rem;"><i data-lucide="shield-check" style="width:12px; height:12px; display:inline; margin-bottom:-2px"></i> Admin</span>` 
@@ -1618,7 +1623,7 @@ const handleUserSubmit = async (e) => {
       });
       
       if (res && res.status === 'error') {
-          alert(res.message || "Error al guardar el usuario");
+          showToast(res.message || "Error al guardar el usuario", "error");
           return;
       }
       
@@ -1627,10 +1632,17 @@ const handleUserSubmit = async (e) => {
       closeModal('modal-user');
       renderConfigUsers();
       
+      // Mensaje de éxito UI
+      showToast(idStr ? "Usuario actualizado correctamente" : "Funcionario creado con éxito");
+      
       // Show welcome email if it's a new user
       if (!idStr) {
-          showSimulatedEmail(email, 'welcome', { name, password, role });
+          setTimeout(() => {
+             showSimulatedEmail(email, 'welcome', { name, password, role });
+          }, 600); // Pequeño retraso para que se vea el toast primero
       }
+  } catch(e) {
+      showToast("Error inesperado al guardar", "error");
   } finally {
       btn.innerHTML = orgText;
       btn.disabled = false;
