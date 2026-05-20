@@ -150,6 +150,37 @@ const toggleSidebar = () => {
   }
 };
 
+const showToast = (message, type = 'success') => {
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;';
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? '#10B981' : '#EF4444';
+    const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+    
+    toast.style.cssText = `background: ${bgColor}; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; transform: translateX(100%); opacity: 0; transition: all 0.3s ease;`;
+    toast.innerHTML = `<i data-lucide="${icon}" style="width:18px; height:18px;"></i> <span>${message}</span>`;
+    
+    toastContainer.appendChild(toast);
+    if(window.lucide) lucide.createIcons();
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+        toast.style.opacity = '1';
+    }, 10);
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+};
+
 // Utilidad Formatear Moneda (Pesos Colombianos)
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('es-CO', { 
