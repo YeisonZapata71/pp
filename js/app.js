@@ -18,7 +18,22 @@ const fetchData = async (endpoint, method="GET", body=null) => {
         const res = await fetch(API_URL + endpoint, opts);
         const text = await res.text();
         try {
-            return JSON.parse(text);
+            const parsed = JSON.parse(text);
+            // Si el endpoint es projects y retorna un array, debemos parsear los campos JSON que MySQL devuelve como strings
+            if (endpoint === 'projects' && method === 'GET' && Array.isArray(parsed)) {
+                parsed.forEach(p => {
+                    if (typeof p.documents === 'string') {
+                        try { p.documents = JSON.parse(p.documents); } catch(e) { p.documents = []; }
+                    }
+                    if (typeof p.photos === 'string') {
+                        try { p.photos = JSON.parse(p.photos); } catch(e) { p.photos = {antes:[], durante:[], despues:[]}; }
+                    }
+                    if (typeof p.notes === 'string') {
+                        try { p.notes = JSON.parse(p.notes); } catch(e) { p.notes = []; }
+                    }
+                });
+            }
+            return parsed;
         } catch(e) {
             console.error("Invalid JSON from server:", text);
             return { status: "error", message: text ? "Invalid JSON: " + text.substring(0, 50) : "[RESPUESTA VACIA DEL SERVIDOR]" };
