@@ -303,13 +303,13 @@ try {
                     $json = json_encode($users);
                     if ($json === false) throw new Exception("JSON Encode Error: " . json_last_error_msg());
                     echo $json;
-                } catch (Throwable $e) {
+                } catch (Exception $e) {
                     try {
                         $oldUsers = fetchAll($conn, "SELECT id, username as email, name, role FROM users");
                         $json = json_encode($oldUsers);
                         if ($json === false) throw new Exception("JSON Encode Error: " . json_last_error_msg());
                         echo $json;
-                    } catch (Throwable $e2) {
+                    } catch (Exception $e2) {
                         echo json_encode(["status" => "error", "message" => "Error users: " . $e2->getMessage()]);
                     }
                 }
@@ -538,7 +538,7 @@ try {
         default:
             echo json_encode(["status" => "error", "message" => "Endpoint no válido"]);
     }
-} catch (Throwable $fatal) {
+} catch (Exception $fatal) {
     $json = json_encode([
         "status" => "error", 
         "message" => "Excepción fatal en el backend (" . $endpoint . "): " . $fatal->getMessage(),
