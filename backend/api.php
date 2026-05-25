@@ -63,7 +63,11 @@ try {
             if ($method === 'POST') {
                 $user = trim($input['email'] ?? $input['username'] ?? '');
                 $pass = $input['password'] ?? '';
-                $data = fetchAll($conn, "SELECT id, email, name, role FROM users WHERE email = ? AND password = ?", "ss", $user, $pass);
+                try {
+                    $data = fetchAll($conn, "SELECT id, email, name, role FROM users WHERE email = ? AND password = ?", "ss", $user, $pass);
+                } catch (Throwable $e) {
+                    $data = fetchAll($conn, "SELECT id, username as email, name, role FROM users WHERE username = ? AND password = ?", "ss", $user, $pass);
+                }
                 if (count($data) > 0) {
                     echo json_encode(["status" => "success", "user" => $data[0]]);
                 } else {
@@ -245,8 +249,9 @@ try {
                         $stmt2->execute();
                         echo json_encode(["status" => "success"]);
                     } catch (Throwable $e3) {
-                        $errorMsg = "Error al guardar el usuario: " . $e3->getMessage();
-                        if (strpos($e3->getMessage(), 'Duplicate entry') !== false || strpos($e3->getMessage(), 'UNIQUE') !== false) {
+                        $safeMsg = utf8_encode($e3->getMessage());
+                        $errorMsg = "Error al guardar el usuario: " . $safeMsg;
+                        if (strpos($safeMsg, 'Duplicate entry') !== false || strpos($safeMsg, 'UNIQUE') !== false) {
                             $errorMsg = "El correo electrónico ya está registrado.";
                         }
                         echo json_encode(["status" => "error", "message" => $errorMsg]);
@@ -296,10 +301,11 @@ try {
             echo json_encode(["status" => "error", "message" => "Endpoint no válido"]);
     }
 } catch (Throwable $fatal) {
+    $safeMsg = utf8_encode($fatal->getMessage());
     echo json_encode([
         "status" => "error", 
-        "message" => "Excepción fatal en el backend (" . $endpoint . "): " . $fatal->getMessage(),
-        "trace" => $fatal->getTraceAsString()
+        "message" => "Excepción fatal en el backend (" . $endpoint . "): " . $safeMsg,
+        "trace" => utf8_encode($fatal->getTraceAsString())
     ]);
 }
 $conn->close();
