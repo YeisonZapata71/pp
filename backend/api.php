@@ -299,14 +299,18 @@ try {
         case 'users':
             if ($method === 'GET') {
                 try {
-                    echo json_encode(fetchAll($conn, "SELECT id, email, name, role FROM users"));
-                } catch (Exception $e) {
-                    // If it fails (e.g. email column doesn't exist yet because migration failed), fallback to username
+                    $users = fetchAll($conn, "SELECT id, email, name, role FROM users");
+                    $json = json_encode($users);
+                    if ($json === false) throw new Exception("JSON Encode Error: " . json_last_error_msg());
+                    echo $json;
+                } catch (Throwable $e) {
                     try {
                         $oldUsers = fetchAll($conn, "SELECT id, username as email, name, role FROM users");
-                        echo json_encode($oldUsers);
-                    } catch (Exception $e2) {
-                        echo json_encode(["status" => "error", "message" => $e2->getMessage()]);
+                        $json = json_encode($oldUsers);
+                        if ($json === false) throw new Exception("JSON Encode Error: " . json_last_error_msg());
+                        echo $json;
+                    } catch (Throwable $e2) {
+                        echo json_encode(["status" => "error", "message" => "Error users: " . $e2->getMessage()]);
                     }
                 }
             } elseif ($method === 'POST') {
@@ -534,7 +538,7 @@ try {
         default:
             echo json_encode(["status" => "error", "message" => "Endpoint no válido"]);
     }
-} catch (Exception $fatal) {
+} catch (Throwable $fatal) {
     $json = json_encode([
         "status" => "error", 
         "message" => "Excepción fatal en el backend (" . $endpoint . "): " . $fatal->getMessage(),
