@@ -12,7 +12,7 @@ function getDB() {
         $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
         $conn->set_charset("utf8mb4");
         return $conn;
-    } catch (\Throwable $e) {
+    } catch (Exception $e) {
         die(json_encode([
             "status" => "error", 
             "message" => "Error crítico de Base de Datos Hostinger: Verifica el usuario/contraseña. (" . $e->getMessage() . ")"

@@ -39,7 +39,7 @@ try {
         status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
-} catch (Throwable $e) {
+} catch (Exception $e) {
     // Ignore migration errors (e.g. if another concurrent request already ran the ALTER TABLE)
 }
 // ----------------------------
@@ -76,7 +76,7 @@ try {
                 $pass = $input['password'] ?? '';
                 try {
                     $data = fetchAll($conn, "SELECT id, email, name, role FROM users WHERE email = ? AND password = ?", "ss", $user, $pass);
-                } catch (Throwable $e) {
+                } catch (Exception $e) {
                     $data = fetchAll($conn, "SELECT id, username as email, name, role FROM users WHERE username = ? AND password = ?", "ss", $user, $pass);
                 }
                 if (count($data) > 0) {
@@ -336,13 +336,14 @@ try {
                         }
                         $stmt2->execute();
                         echo json_encode(["status" => "success"]);
-                    } catch (Throwable $e3) {
+                    } catch (Exception $e3) {
                         $safeMsg = $e3->getMessage();
                         $errorMsg = "Error al guardar el usuario: " . $safeMsg;
                         if (strpos($safeMsg, 'Duplicate entry') !== false || strpos($safeMsg, 'UNIQUE') !== false) {
                             $errorMsg = "El correo electrónico ya está registrado.";
                         }
-                        echo json_encode(["status" => "error", "message" => $errorMsg]);
+                        $json = json_encode(["status" => "error", "message" => $errorMsg]);
+                        echo $json !== false ? $json : json_encode(["status" => "error", "message" => "Error al guardar (codificacion invalida)"]);
                     }
                 }
             }
@@ -353,7 +354,7 @@ try {
                 $email = $input['email'] ?? '';
                 try {
                     $data = fetchAll($conn, "SELECT id, name, email FROM users WHERE email = ?", "s", $email);
-                } catch (Throwable $e) {
+                } catch (Exception $e) {
                     $data = fetchAll($conn, "SELECT id, name, username as email FROM users WHERE username = ?", "s", $email);
                 }
                 if (count($data) > 0) {
@@ -372,7 +373,7 @@ try {
                     $stmt = $conn->prepare("UPDATE users SET password = ? WHERE email = ?");
                     $stmt->bind_param("ss", $newPass, $email);
                     $stmt->execute();
-                } catch (Throwable $e) {
+                } catch (Exception $e) {
                     $stmt = $conn->prepare("UPDATE users SET password = ? WHERE username = ?");
                     $stmt->bind_param("ss", $newPass, $email);
                     $stmt->execute();
@@ -473,8 +474,9 @@ try {
                         $stmt->bind_param("si", $updatedDocsStr, $projId);
                         $stmt->execute();
                     }
-                } catch (Throwable $e) {
-                    echo json_encode(["status" => "error", "message" => "Archivo subido pero no se pudo actualizar BD: " . $e->getMessage()]);
+                } catch (Exception $e) {
+                    $json = json_encode(["status" => "error", "message" => "Archivo subido pero no se pudo actualizar BD: " . $e->getMessage()]);
+                    echo $json !== false ? $json : json_encode(["status" => "error", "message" => "Archivo subido pero no se pudo actualizar BD (error de codificacion)"]);
                     exit;
                 }
 
@@ -532,12 +534,16 @@ try {
         default:
             echo json_encode(["status" => "error", "message" => "Endpoint no válido"]);
     }
-} catch (Throwable $fatal) {
-    echo json_encode([
+} catch (Exception $fatal) {
+    $json = json_encode([
         "status" => "error", 
         "message" => "Excepción fatal en el backend (" . $endpoint . "): " . $fatal->getMessage(),
         "trace" => $fatal->getTraceAsString()
     ]);
+    if ($json === false) {
+        $json = json_encode(["status" => "error", "message" => "Excepción fatal en el backend (El mensaje original no se pudo codificar porque la base de datos no está en utf8). Revisa si te faltan tablas o columnas."]);
+    }
+    echo $json;
 }
 $conn->close();
 ?>
