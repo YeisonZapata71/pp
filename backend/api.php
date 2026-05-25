@@ -218,7 +218,7 @@ try {
                         $oldUsers = fetchAll($conn, "SELECT id, username as email, name, role FROM users");
                         echo json_encode($oldUsers);
                     } catch (Throwable $e2) {
-                        echo json_encode(["status" => "error", "message" => utf8_encode($e2->getMessage())]);
+                        echo json_encode(["status" => "error", "message" => mb_convert_encoding($e2->getMessage(), 'UTF-8', 'ISO-8859-1')]);
                     }
                 }
             } elseif ($method === 'POST') {
@@ -249,7 +249,7 @@ try {
                         $stmt2->execute();
                         echo json_encode(["status" => "success"]);
                     } catch (Throwable $e3) {
-                        $safeMsg = utf8_encode($e3->getMessage());
+                        $safeMsg = mb_convert_encoding($e3->getMessage(), 'UTF-8', 'ISO-8859-1');
                         $errorMsg = "Error al guardar el usuario: " . $safeMsg;
                         if (strpos($safeMsg, 'Duplicate entry') !== false || strpos($safeMsg, 'UNIQUE') !== false) {
                             $errorMsg = "El correo electrónico ya está registrado.";
@@ -386,7 +386,7 @@ try {
                         $stmt->execute();
                     }
                 } catch (Throwable $e) {
-                    echo json_encode(["status" => "error", "message" => "Archivo subido pero no se pudo actualizar BD: " . utf8_encode($e->getMessage())]);
+                    echo json_encode(["status" => "error", "message" => "Archivo subido pero no se pudo actualizar BD: " . mb_convert_encoding($e->getMessage(), 'UTF-8', 'ISO-8859-1')]);
                     exit;
                 }
 
@@ -445,11 +445,11 @@ try {
             echo json_encode(["status" => "error", "message" => "Endpoint no válido"]);
     }
 } catch (Throwable $fatal) {
-    $safeMsg = utf8_encode($fatal->getMessage());
+    $safeMsg = mb_convert_encoding($fatal->getMessage(), 'UTF-8', 'ISO-8859-1');
     echo json_encode([
         "status" => "error", 
         "message" => "Excepción fatal en el backend (" . $endpoint . "): " . $safeMsg,
-        "trace" => utf8_encode($fatal->getTraceAsString())
+        "trace" => mb_convert_encoding($fatal->getTraceAsString(), 'UTF-8', 'ISO-8859-1')
     ]);
 }
 $conn->close();
