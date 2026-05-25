@@ -114,7 +114,6 @@ p { color: var(--text-muted); }
   min-height: 100vh;
 }
 
-/* Sidebar */
 .sidebar {
   width: 280px;
   background-color: var(--bg-sidebar);
@@ -125,6 +124,7 @@ p { color: var(--text-muted); }
   position: fixed;
   height: 100vh;
   z-index: 10;
+  overflow-y: auto;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
