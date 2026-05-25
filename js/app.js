@@ -7,6 +7,7 @@ let mockDirectoryJACs = [];
 let mockProjects = [];
 let mockPayments = [];
 let mockUsers = [];
+let mockDeleteRequests = [];
 let currentYear = new Date().getFullYear();
 
 const API_URL = 'backend/api.php?endpoint=';
@@ -92,6 +93,14 @@ const loadDataFromAPI = async () => {
         // 6. Users
         const resUsers = await fetchData('users');
         mockUsers = checkError(resUsers, 'Usuarios');
+        
+        // 7. Delete Requests (Solo Admins)
+        if (sessionStorage.getItem('pp_role') === 'admin') {
+            const resReqs = await fetchData('delete_requests');
+            mockDeleteRequests = checkError(resReqs, 'Solicitudes de Eliminación');
+            updateNotificationsBadge();
+        }
+        
         if (loader) { loaderText.textContent = 'Renderizando interfaz...'; loaderProgress.style.width = '100%'; }
 
         // Ocultar el loader con una transición suave
@@ -1000,7 +1009,11 @@ const renderProjects = () => {
     const totalProjBudget = (parseFloat(proj.budget) || 0) + (proj.hasAddition ? (parseFloat(proj.addition) || 0) : 0);
     const additionSpan = (proj.hasAddition && parseFloat(proj.addition) > 0) ? `<small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-top:2px;">+ ${formatCurrency(parseFloat(proj.addition))} (Adic.)</small>` : '';
 
+    const isPending = mockDeleteRequests && mockDeleteRequests.some(r => r.project_id === proj.id);
+    const pendingBadge = isPending ? `<div style="background:#FEF3C7; color:#92400E; padding:0.25rem 0.5rem; border-radius:4px; font-size:0.7rem; font-weight:600; margin-bottom:0.5rem; display:inline-flex; align-items:center; gap:0.25rem;"><i data-lucide="lock" style="width:12px; height:12px;"></i> Pendiente Eliminación</div>` : '';
+
     card.innerHTML = `
+      ${pendingBadge}
       <div class="kanban-card-title">${proj.title}</div>
       <div class="kanban-card-jac"><i data-lucide="users" style="width:12px; height:12px"></i> ${jacName}</div>
       <div class="kanban-card-desc">${proj.description || ''}</div>
@@ -1207,6 +1220,36 @@ const editProject = (id) => {
   
   applyProjectModalPermissions(false);
   
+  // Check if pending delete request exists
+  const isPending = mockDeleteRequests && mockDeleteRequests.some(r => r.project_id === id);
+  let pendingWarning = document.getElementById('pending-delete-warning');
+  if (isPending) {
+      if (!pendingWarning) {
+          pendingWarning = document.createElement('div');
+          pendingWarning.id = 'pending-delete-warning';
+          pendingWarning.className = 'alert alert-warning';
+          pendingWarning.style.cssText = 'background:#FEF3C7; color:#92400E; padding:1rem; border-radius:8px; display:flex; gap:0.5rem; align-items:center; margin-bottom:1rem; font-weight:600;';
+          pendingWarning.innerHTML = '<i data-lucide="lock" style="flex-shrink:0;"></i> Este proyecto está Bloqueado (Pendiente de Eliminación por Administrador).';
+          document.getElementById('proj-form').parentNode.insertBefore(pendingWarning, document.getElementById('proj-form'));
+          if(window.lucide) lucide.createIcons();
+      }
+      document.getElementById('btn-delete-proj').style.display = 'none';
+      const saveBtn = document.querySelector('#modal-project .modal-footer .btn-primary');
+      if(saveBtn) saveBtn.style.display = 'none';
+      const fields = document.querySelectorAll('#proj-form input, #proj-form select, #proj-form textarea');
+      fields.forEach(f => f.disabled = true);
+  } else {
+      if (pendingWarning) {
+          pendingWarning.remove();
+      }
+      const fields = document.querySelectorAll('#proj-form input, #proj-form select, #proj-form textarea');
+      fields.forEach(f => f.disabled = false);
+      const saveBtn = document.querySelector('#modal-project .modal-footer .btn-primary');
+      if(saveBtn && (sessionStorage.getItem('pp_role') === 'admin' || sessionStorage.getItem('pp_role') === 'gestor')) {
+          saveBtn.style.display = 'inline-flex';
+      }
+  }
+  
   openModal('modal-project');
 };
 
@@ -1218,11 +1261,22 @@ const deleteProject = async () => {
   const index = mockProjects.findIndex(p => p.id === id);
   if (index === -1) return;
   
-  if (confirm(`¿Estás seguro de que deseas eliminar el proyecto "${mockProjects[index].title}"?`)) {
-    await fetchData('projects', 'DELETE', {id});
-    await loadDataFromAPI();
-    closeModal('modal-project');
-    renderProjects();
+  const activeRole = sessionStorage.getItem('pp_role');
+  
+  if (activeRole === 'gestor') {
+      // Open the delete request modal instead of deleting
+      document.getElementById('del-req-proj-id').value = id;
+      document.getElementById('del-req-reason').value = '';
+      openModal('modal-delete-request');
+  } else if (activeRole === 'admin') {
+      if (confirm(`¿CONFIRMAS la eliminación PERMANENTE de "${mockProjects[index].title}" y todos sus archivos?`)) {
+        await fetchData('projects', 'DELETE', {id});
+        await loadDataFromAPI();
+        closeModal('modal-project');
+        renderDashboard();
+      }
+  } else {
+      showToast("No tienes permisos para eliminar proyectos.", "error");
   }
 };
 
@@ -2105,6 +2159,133 @@ const applyPermissions = () => {
     }
     
     if(window.lucide) lucide.createIcons();
+};
+
+// --- SISTEMA DE AUTORIZACIÓN DE ELIMINACIÓN ---
+window.updateNotificationsBadge = () => {
+    const activeRole = sessionStorage.getItem('pp_role');
+    const navItem = document.getElementById('nav-notifications');
+    const badge = document.getElementById('badge-notifications');
+    
+    if (activeRole === 'admin') {
+        navItem.style.display = 'block';
+        if (mockDeleteRequests && mockDeleteRequests.length > 0) {
+            badge.style.display = 'inline-block';
+            badge.textContent = mockDeleteRequests.length;
+        } else {
+            badge.style.display = 'none';
+        }
+    } else {
+        navItem.style.display = 'none';
+    }
+};
+
+window.openNotificationsModal = (e) => {
+    e.preventDefault();
+    const container = document.getElementById('notifications-container');
+    container.innerHTML = '';
+    
+    if (!mockDeleteRequests || mockDeleteRequests.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);"><i data-lucide="bell-off" style="width:48px; height:48px; margin-bottom:1rem; opacity:0.5;"></i><p>No hay solicitudes pendientes.</p></div>';
+    } else {
+        mockDeleteRequests.forEach(req => {
+            container.innerHTML += `
+                <div style="background:white; border:1px solid #E5E7EB; border-radius:8px; padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <h3 style="margin:0; color:#111827; font-size:1.1rem;">Proyecto: ${req.project_title}</h3>
+                            <p style="margin:0.25rem 0 0 0; color:#6B7280; font-size:0.9rem;">Solicitado por: <strong>${req.requested_by_name}</strong> (${req.requested_by_email})</p>
+                        </div>
+                        <span style="background:#FEF3C7; color:#92400E; padding:0.25rem 0.5rem; border-radius:4px; font-size:0.8rem; font-weight:600;">Pendiente</span>
+                    </div>
+                    <div style="background:#F9FAFB; padding:1rem; border-radius:6px; font-size:0.95rem; color:#374151; border-left:3px solid #D1D5DB;">
+                        "${req.reason}"
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:0.5rem;">
+                        <button class="btn btn-secondary" onclick="rejectDeleteRequest(${req.id})"><i data-lucide="x-circle"></i> Rechazar</button>
+                        <button class="btn btn-primary" onclick="approveDeleteRequest(${req.id}, ${req.project_id})" style="background:var(--danger);"><i data-lucide="trash-2"></i> Aprobar Eliminación</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    if(window.lucide) lucide.createIcons();
+    openModal('modal-notifications');
+};
+
+window.submitDeleteRequest = async (e) => {
+    e.preventDefault();
+    const projId = document.getElementById('del-req-proj-id').value;
+    const reason = document.getElementById('del-req-reason').value;
+    
+    if (!reason.trim()) {
+        showToast("Debes escribir un motivo.", "error");
+        return;
+    }
+    
+    const email = sessionStorage.getItem('pp_email');
+    const name = sessionStorage.getItem('pp_name');
+    
+    const body = {
+        project_id: projId,
+        requested_by_email: email,
+        requested_by_name: name,
+        reason: reason
+    };
+    
+    document.getElementById('btn-submit-del-req').disabled = true;
+    document.getElementById('btn-submit-del-req').textContent = 'Enviando...';
+    
+    const res = await fetchData('delete_requests', 'POST', body);
+    
+    document.getElementById('btn-submit-del-req').disabled = false;
+    document.getElementById('btn-submit-del-req').textContent = 'Enviar Solicitud';
+    
+    if (res && res.status === 'success') {
+        showToast("Solicitud de eliminación enviada al administrador.", "success");
+        closeModal('modal-delete-request');
+        closeModal('modal-project');
+        // Add fake request to block UI immediately
+        mockDeleteRequests.push({ project_id: parseInt(projId) });
+        renderDashboard();
+    } else {
+        showToast(res.message || "Error al enviar la solicitud.", "error");
+    }
+};
+
+window.rejectDeleteRequest = async (reqId) => {
+    if (!confirm('¿Estás seguro de que deseas rechazar esta solicitud? El proyecto no será eliminado.')) return;
+    
+    const res = await fetchData('delete_requests', 'PUT', { request_id: reqId, action: 'reject' });
+    if (res && res.status === 'success') {
+        showToast("Solicitud rechazada.", "success");
+        mockDeleteRequests = mockDeleteRequests.filter(r => r.id !== reqId);
+        updateNotificationsBadge();
+        openNotificationsModal({preventDefault:()=>{} }); // refresh modal
+        renderDashboard();
+    } else {
+        showToast("Error al rechazar solicitud.", "error");
+    }
+};
+
+window.approveDeleteRequest = async (reqId, projId) => {
+    if (!confirm('¿CONFIRMAS la eliminación PERMANENTE de este proyecto y TODOS sus archivos PDF del servidor? Esta acción es irreversible.')) return;
+    
+    // First approve the request to get it out of the queue
+    await fetchData('delete_requests', 'PUT', { request_id: reqId, action: 'approve' });
+    
+    // Then delete the actual project (this triggers the backend file deletion)
+    const res = await fetchData('projects', 'DELETE', { id: projId });
+    if (res && res.status === 'success') {
+        showToast("Proyecto y archivos eliminados permanentemente.", "success");
+        mockProjects = mockProjects.filter(p => p.id !== projId);
+        mockDeleteRequests = mockDeleteRequests.filter(r => r.id !== reqId);
+        updateNotificationsBadge();
+        closeModal('modal-notifications');
+        renderDashboard();
+    } else {
+        showToast("Error al eliminar el proyecto.", "error");
+    }
 };
 
 // Inicialización

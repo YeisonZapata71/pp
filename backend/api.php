@@ -28,6 +28,17 @@ try {
         $conn->query("UPDATE users SET email = 'auditor@girardota.gov.co', password = 'Auditor2026*' WHERE role = 'auditor'");
         $conn->query("UPDATE users SET email = 'lector@girardota.gov.co', password = 'Lector2026*' WHERE role = 'lector'");
     }
+    
+    // Auto-crear tabla de solicitudes de eliminación
+    $conn->query("CREATE TABLE IF NOT EXISTS delete_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        project_id INT NOT NULL,
+        requested_by_email VARCHAR(150),
+        requested_by_name VARCHAR(150),
+        reason TEXT,
+        status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
 } catch (Throwable $e) {
     // Ignore migration errors (e.g. if another concurrent request already ran the ALTER TABLE)
 }
@@ -178,10 +189,87 @@ try {
                 echo json_encode(["status" => "success"]);
             } elseif ($method === 'DELETE') {
                 $id = $input['id'];
+                
+                // 1. Fetch project to get documents_json
+                $projData = fetchAll($conn, "SELECT documents_json FROM projects WHERE id=?", "i", $id);
+                if (count($projData) > 0) {
+                    $docsJson = $projData[0]['documents_json'] ?? '{}';
+                    $docsObj = json_decode($docsJson, true);
+                    if (is_array($docsObj)) {
+                        // Recursively delete files
+                        $deleteFiles = function($array) use (&$deleteFiles) {
+                            foreach ($array as $key => $value) {
+                                if (is_array($value)) {
+                                    if (isset($value['path'])) {
+                                        $fullPath = __DIR__ . "/../" . $value['path'];
+                                        if (file_exists($fullPath) && strpos($value['path'], 'uploads/') !== false) {
+                                            unlink($fullPath);
+                                        }
+                                    } else {
+                                        $deleteFiles($value);
+                                    }
+                                }
+                            }
+                        };
+                        $deleteFiles($docsObj);
+                    }
+                }
+                
+                // 2. Delete project from DB
                 $stmt = $conn->prepare("DELETE FROM projects WHERE id=?");
                 $stmt->bind_param("i", $id);
                 $stmt->execute();
+                
+                // 3. Delete any associated delete requests
+                $stmtReq = $conn->prepare("DELETE FROM delete_requests WHERE project_id=?");
+                $stmtReq->bind_param("i", $id);
+                $stmtReq->execute();
+                
                 echo json_encode(["status" => "success"]);
+            }
+            break;
+
+        case 'delete_requests':
+            if ($method === 'GET') {
+                echo json_encode(fetchAll($conn, "SELECT dr.*, p.title as project_title FROM delete_requests dr JOIN projects p ON dr.project_id = p.id WHERE dr.status = 'pending'"));
+            } elseif ($method === 'POST') {
+                $projId = $input['project_id'];
+                $email = $input['requested_by_email'];
+                $name = $input['requested_by_name'];
+                $reason = $input['reason'];
+                
+                // Check if already pending
+                $check = fetchAll($conn, "SELECT id FROM delete_requests WHERE project_id=? AND status='pending'", "i", $projId);
+                if (count($check) > 0) {
+                    echo json_encode(["status" => "error", "message" => "Ya existe una solicitud pendiente para este proyecto."]);
+                    exit;
+                }
+                
+                $stmt = $conn->prepare("INSERT INTO delete_requests (project_id, requested_by_email, requested_by_name, reason) VALUES (?, ?, ?, ?)");
+                $stmt->bind_param("isss", $projId, $email, $name, $reason);
+                $stmt->execute();
+                echo json_encode(["status" => "success"]);
+            } elseif ($method === 'PUT') {
+                $reqId = $input['request_id'];
+                $action = $input['action']; // 'approve' or 'reject'
+                
+                if ($action === 'reject') {
+                    $stmt = $conn->prepare("UPDATE delete_requests SET status='rejected' WHERE id=?");
+                    $stmt->bind_param("i", $reqId);
+                    $stmt->execute();
+                    echo json_encode(["status" => "success"]);
+                } elseif ($action === 'approve') {
+                    // Get project ID
+                    $reqData = fetchAll($conn, "SELECT project_id FROM delete_requests WHERE id=?", "i", $reqId);
+                    if (count($reqData) > 0) {
+                        $projId = $reqData[0]['project_id'];
+                        // Aprobación es procesada a través del DELETE regular enviando id del proyecto desde el frontend, pero marcamos el request como aprobado por si acaso.
+                        $stmt = $conn->prepare("UPDATE delete_requests SET status='approved' WHERE id=?");
+                        $stmt->bind_param("i", $reqId);
+                        $stmt->execute();
+                        echo json_encode(["status" => "success", "project_id" => $projId]);
+                    }
+                }
             }
             break;
 
