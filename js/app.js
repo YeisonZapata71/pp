@@ -45,15 +45,17 @@ const fetchData = async (endpoint, method="GET", body=null) => {
 };
 
 const loadDataFromAPI = async () => {
+    const loader = document.getElementById('global-loader');
+    const loaderText = document.getElementById('global-loader-text');
+    const loaderProgress = document.getElementById('global-loader-progress');
+    
+    if (loader) {
+        loader.style.display = 'flex';
+        loaderText.textContent = 'Verificando presupuesto global...';
+        loaderProgress.style.width = '10%';
+    }
+
     try {
-        // Cargar los datos secuencialmente para no saturar al servidor de Hostinger con muchas peticiones simultáneas
-        const resBudgets = await fetchData('global_budgets');
-        const resJACs = await fetchData('jacs');
-        const resDirJACs = await fetchData('directory_jacs');
-        const resProjects = await fetchData('projects');
-        const resPayments = await fetchData('payments');
-        const resUsers = await fetchData('users');
-        
         const checkError = (res, name) => {
             if (res && res.status === 'error') {
                 showToast(`Error cargando ${name}: ${res.message}`, "error");
@@ -62,16 +64,52 @@ const loadDataFromAPI = async () => {
             return Array.isArray(res) ? res : [];
         };
 
+        // 1. Budgets
+        const resBudgets = await fetchData('global_budgets');
         globalBudgets = checkError(resBudgets, 'Presupuestos');
-        mockJACs = checkError(resJACs, 'JACs');
+        if (loader) { loaderText.textContent = 'Cargando directorio de JACs...'; loaderProgress.style.width = '25%'; }
+
+        // 2. Directory JACs
+        const resDirJACs = await fetchData('directory_jacs');
         mockDirectoryJACs = checkError(resDirJACs, 'Directorio');
+        if (loader) { loaderText.textContent = 'Calculando asignaciones de JACs...'; loaderProgress.style.width = '40%'; }
+
+        // 3. JACs
+        const resJACs = await fetchData('jacs');
+        mockJACs = checkError(resJACs, 'JACs');
+        if (loader) { loaderText.textContent = 'Descargando banco de proyectos...'; loaderProgress.style.width = '60%'; }
+
+        // 4. Projects
+        const resProjects = await fetchData('projects');
         mockProjects = checkError(resProjects, 'Proyectos');
+        if (loader) { loaderText.textContent = 'Sincronizando historial de pagos...'; loaderProgress.style.width = '80%'; }
+
+        // 5. Payments
+        const resPayments = await fetchData('payments');
         mockPayments = checkError(resPayments, 'Pagos');
+        if (loader) { loaderText.textContent = 'Validando usuarios y permisos...'; loaderProgress.style.width = '90%'; }
+
+        // 6. Users
+        const resUsers = await fetchData('users');
         mockUsers = checkError(resUsers, 'Usuarios');
-        
+        if (loader) { loaderText.textContent = 'Renderizando interfaz...'; loaderProgress.style.width = '100%'; }
+
+        // Ocultar el loader con una transición suave
+        if (loader) {
+            setTimeout(() => {
+                loader.style.transition = 'opacity 0.4s ease';
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    loader.style.opacity = '1';
+                }, 400);
+            }, 300);
+        }
+
     } catch(e) { 
         console.error("Error crítico cargando DB:", e);
         showToast("Error crítico al cargar datos", "error");
+        if (loader) loader.style.display = 'none';
     }
 };
 
