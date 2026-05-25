@@ -83,10 +83,18 @@ const checkAuth = async () => {
 const handleLogin = async (e) => {
   e.preventDefault();
   const btn = e.target.querySelector('button[type="submit"]');
-  const orgText = btn.textContent;
+  const orgText = btn.innerHTML;
   
-  const user = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-pass').value;
+  const userEl = document.getElementById('login-email') || document.getElementById('login-user');
+  const passEl = document.getElementById('login-pass');
+  
+  if (!userEl || !passEl) {
+      alert("Error crítico: No se encuentran los campos del formulario en tu navegador. Presiona Ctrl + F5.");
+      return;
+  }
+  
+  const user = userEl.value.trim();
+  const pass = passEl.value;
   
   if (!user || !pass) return;
 
@@ -1656,7 +1664,14 @@ const handleUserSubmit = async (e) => {
   
   const idStr = document.getElementById('user-id').value;
   const name = document.getElementById('user-name').value;
-  const email = document.getElementById('user-email').value;
+  
+  const emailEl = document.getElementById('user-email') || document.getElementById('user-username');
+  if (!emailEl) {
+      alert("Error crítico de caché: Faltan campos en el formulario. Presiona Ctrl + F5.");
+      return;
+  }
+  const email = emailEl.value;
+  
   const password = document.getElementById('user-pass').value;
   const role = document.getElementById('user-role').value;
   
