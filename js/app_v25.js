@@ -98,8 +98,9 @@ const loadDataFromAPI = async () => {
         if (sessionStorage.getItem('pp_role') === 'admin') {
             const resReqs = await fetchData('delete_requests');
             mockDeleteRequests = checkError(resReqs, 'Solicitudes de Eliminación');
-            updateNotificationsBadge();
         }
+        
+        updateNotificationsBadge();
         
         if (loader) { loaderText.textContent = 'Renderizando interfaz...'; loaderProgress.style.width = '100%'; }
 
@@ -2205,10 +2206,12 @@ window.openNotificationsModal = (e) => {
                     <div style="background:#F9FAFB; padding:1rem; border-radius:6px; font-size:0.95rem; color:#374151; border-left:3px solid #D1D5DB;">
                         "${req.reason}"
                     </div>
+                    ${sessionStorage.getItem('pp_role') === 'admin' ? `
                     <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:0.5rem;">
                         <button class="btn btn-secondary" onclick="rejectDeleteRequest(${req.id})"><i data-lucide="x-circle"></i> Rechazar</button>
                         <button class="btn btn-primary" onclick="approveDeleteRequest(${req.id}, ${req.project_id})" style="background:var(--danger);"><i data-lucide="trash-2"></i> Aprobar Eliminación</button>
                     </div>
+                    ` : ''}
                 </div>
             `;
         });
