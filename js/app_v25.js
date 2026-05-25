@@ -2276,6 +2276,11 @@ window.rejectDeleteRequest = async (reqId) => {
 };
 
 window.approveDeleteRequest = async (reqId, projId) => {
+    if (sessionStorage.getItem('pp_role') !== 'admin') {
+        showToast("Error de permisos: Solo los administradores pueden aprobar eliminaciones.", "error");
+        return;
+    }
+    
     if (!confirm('¿CONFIRMAS la eliminación PERMANENTE de este proyecto y TODOS sus archivos PDF del servidor? Esta acción es irreversible.')) return;
     
     // First approve the request to get it out of the queue
