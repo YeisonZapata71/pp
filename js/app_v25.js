@@ -170,6 +170,8 @@ const handleLogin = async (e) => {
         sessionStorage.setItem('pp_logged_in', 'true');
         sessionStorage.setItem('pp_role', res.user.role || 'gestor');
         sessionStorage.setItem('pp_user_name', res.user.name);
+        sessionStorage.setItem('pp_name', res.user.name);
+        sessionStorage.setItem('pp_email', res.user.email);
         
         const appContainer = document.getElementById('app-container');
         const loginView = document.getElementById('login-view');
@@ -198,6 +200,8 @@ const handleLogout = () => {
   sessionStorage.removeItem('pp_logged_in');
   sessionStorage.removeItem('pp_role');
   sessionStorage.removeItem('pp_user_name');
+  sessionStorage.removeItem('pp_name');
+  sessionStorage.removeItem('pp_email');
   
   document.getElementById('form-login').reset();
   
