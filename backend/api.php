@@ -300,12 +300,12 @@ try {
             if ($method === 'GET') {
                 try {
                     echo json_encode(fetchAll($conn, "SELECT id, email, name, role FROM users"));
-                } catch (Throwable $e) {
+                } catch (Exception $e) {
                     // If it fails (e.g. email column doesn't exist yet because migration failed), fallback to username
                     try {
                         $oldUsers = fetchAll($conn, "SELECT id, username as email, name, role FROM users");
                         echo json_encode($oldUsers);
-                    } catch (Throwable $e2) {
+                    } catch (Exception $e2) {
                         echo json_encode(["status" => "error", "message" => $e2->getMessage()]);
                     }
                 }
@@ -322,7 +322,7 @@ try {
                     }
                     $stmt->execute();
                     echo json_encode(["status" => "success"]);
-                } catch (Throwable $e) {
+                } catch (Exception $e) {
                     try {
                         // Fallback si la base de datos no tiene la columna email
                         if (isset($input['id']) && $input['id']) {
