@@ -297,6 +297,150 @@ try {
             }
             break;
 
+        case 'upload_document':
+            if ($method === 'POST') {
+                if (!isset($_FILES['file'])) {
+                    echo json_encode(["status" => "error", "message" => "No se recibió ningún archivo"]);
+                    exit;
+                }
+                
+                $projId = $_POST['project_id'] ?? null;
+                $folder = $_POST['folder'] ?? 'generales';
+                $subfolder = $_POST['subfolder'] ?? null;
+                $uploaderEmail = $_POST['uploader_email'] ?? 'desconocido';
+                $uploaderName = $_POST['uploader_name'] ?? 'Usuario';
+                
+                if (!$projId) {
+                    echo json_encode(["status" => "error", "message" => "Falta el ID del proyecto"]);
+                    exit;
+                }
+
+                $file = $_FILES['file'];
+                if ($file['error'] !== UPLOAD_ERR_OK) {
+                    echo json_encode(["status" => "error", "message" => "Error de subida HTTP: " . $file['error']]);
+                    exit;
+                }
+                
+                if ($file['type'] !== 'application/pdf') {
+                    echo json_encode(["status" => "error", "message" => "Solo se permiten archivos PDF"]);
+                    exit;
+                }
+                
+                if ($file['size'] > 2 * 1024 * 1024) {
+                    echo json_encode(["status" => "error", "message" => "El archivo excede el límite de 2MB"]);
+                    exit;
+                }
+
+                $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $docId = uniqid('doc_');
+                $filename = "proj_{$projId}_{$folder}_{$docId}.{$ext}";
+                $uploadPath = __DIR__ . "/uploads/" . $filename;
+                
+                if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
+                    echo json_encode(["status" => "error", "message" => "No se pudo mover el archivo al servidor"]);
+                    exit;
+                }
+                
+                $fileUrl = "backend/uploads/" . $filename;
+                
+                // Generar metadatos
+                $newDoc = [
+                    "id" => $docId,
+                    "name" => $file['name'],
+                    "path" => $fileUrl,
+                    "size" => $file['size'],
+                    "folder" => $folder,
+                    "subfolder" => $subfolder,
+                    "uploaded_by_email" => $uploaderEmail,
+                    "uploaded_by_name" => $uploaderName,
+                    "uploaded_at" => date("Y-m-d H:i:s")
+                ];
+                
+                // Actualizar DB
+                try {
+                    $projData = fetchAll($conn, "SELECT documents_json FROM projects WHERE id=?", "i", $projId);
+                    if (count($projData) > 0) {
+                        $docsJson = $projData[0]['documents_json'] ?? '{}';
+                        $docsObj = json_decode($docsJson, true);
+                        if (!is_array($docsObj)) $docsObj = []; // Podría ser un array plano (legado) o objeto estructurado
+                        
+                        // Determinar si es legado
+                        $isLegacy = isset($docsObj[0]) && !isset($docsObj[0]['folder']);
+                        if ($isLegacy) {
+                            $oldArr = $docsObj;
+                            $docsObj = ["legacy" => $oldArr];
+                        }
+                        
+                        if ($subfolder && $subfolder !== 'null' && $subfolder !== '') {
+                            if (!isset($docsObj[$folder])) $docsObj[$folder] = [];
+                            if (!isset($docsObj[$folder][$subfolder])) $docsObj[$folder][$subfolder] = [];
+                            $docsObj[$folder][$subfolder][] = $newDoc;
+                        } else {
+                            if (!isset($docsObj[$folder])) $docsObj[$folder] = [];
+                            $docsObj[$folder][] = $newDoc;
+                        }
+                        
+                        $updatedDocsStr = json_encode($docsObj);
+                        $stmt = $conn->prepare("UPDATE projects SET documents_json=? WHERE id=?");
+                        $stmt->bind_param("si", $updatedDocsStr, $projId);
+                        $stmt->execute();
+                    }
+                } catch (Throwable $e) {
+                    echo json_encode(["status" => "error", "message" => "Archivo subido pero no se pudo actualizar BD: " . utf8_encode($e->getMessage())]);
+                    exit;
+                }
+
+                echo json_encode(["status" => "success", "document" => $newDoc]);
+            }
+            break;
+
+        case 'delete_document':
+            if ($method === 'POST') {
+                $projId = $input['project_id'] ?? null;
+                $docId = $input['doc_id'] ?? null;
+                $path = $input['path'] ?? null;
+                
+                if ($path) {
+                    $fullPath = __DIR__ . "/../" . $path;
+                    if (file_exists($fullPath) && strpos($path, 'uploads/') !== false) {
+                        unlink($fullPath);
+                    }
+                }
+                
+                if ($projId && $docId) {
+                    $projData = fetchAll($conn, "SELECT documents_json FROM projects WHERE id=?", "i", $projId);
+                    if (count($projData) > 0) {
+                        $docsJson = $projData[0]['documents_json'] ?? '{}';
+                        $docsObj = json_decode($docsJson, true);
+                        if (is_array($docsObj)) {
+                            // Recursivamente borrar
+                            $removeDoc = function(&$array) use (&$removeDoc, $docId) {
+                                foreach ($array as $key => &$value) {
+                                    if (is_array($value)) {
+                                        if (isset($value['id']) && $value['id'] === $docId) {
+                                            unset($array[$key]);
+                                            $array = array_values($array); // Re-index
+                                            return true;
+                                        } else {
+                                            if ($removeDoc($value)) return true;
+                                        }
+                                    }
+                                }
+                                return false;
+                            };
+                            $removeDoc($docsObj);
+                            
+                            $updatedDocsStr = json_encode($docsObj);
+                            $stmt = $conn->prepare("UPDATE projects SET documents_json=? WHERE id=?");
+                            $stmt->bind_param("si", $updatedDocsStr, $projId);
+                            $stmt->execute();
+                        }
+                    }
+                }
+                echo json_encode(["status" => "success"]);
+            }
+            break;
+
         default:
             echo json_encode(["status" => "error", "message" => "Endpoint no válido"]);
     }

@@ -1295,35 +1295,75 @@ window.switchProjectTab = (tabId) => {
   if(btn) btn.classList.add('active');
 };
 
-const handleMockDocUpload = async (e) => {
+const uploadRealDocument = async (e, projId, folder, subfolder) => {
   const file = e.target.files[0];
-  if(!file) return;
-  
-  if (file.size > 2 * 1024 * 1024) {
-      alert(`El archivo "${file.name}" supera el límite de 2MB permitidos. (Peso actual: ${(file.size / 1024 / 1024).toFixed(2)}MB). Por favor comprímelo de nuevo.`);
+  if (!file) return;
+
+  if (file.type !== "application/pdf") {
+      alert("Error: Solo se permiten archivos en formato PDF.");
       e.target.value = '';
       return;
   }
-  
-  const projId = parseInt(document.getElementById('proj-id').value, 10);
-  const proj = mockProjects.find(p => p.id === projId);
-  if(proj) {
-    if(!proj.documents) proj.documents = [];
-    if(proj.documents.length >= 5) {
-        alert("Límite máximo de 5 documentos alcanzado. Debes eliminar un documento existente antes de subir uno nuevo.");
-        e.target.value = '';
-        return;
-    }
-    
-    proj.documents.push({
-       name: file.name,
-       date: new Date().toISOString().split('T')[0]
-    });
-    // Update API immediately for documents
-    await fetchData('projects', 'POST', proj);
-    await loadDataFromAPI(); 
-    renderProjectAssets(mockProjects.find(p => p.id === projId));
+
+  if (file.size > 2 * 1024 * 1024) {
+      alert(`El archivo "${file.name}" supera el límite de 2MB. Por favor comprímelo usando ilovepdf.com u otra herramienta similar antes de subirlo.`);
+      e.target.value = '';
+      return;
   }
+
+  showToast("Subiendo archivo... por favor espera", "info");
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('project_id', projId);
+  formData.append('folder', folder);
+  formData.append('subfolder', subfolder || '');
+  formData.append('uploader_email', sessionStorage.getItem('pp_logged_in') === 'true' ? 'auth' : 'desconocido');
+  formData.append('uploader_name', sessionStorage.getItem('pp_user_name') || 'Usuario');
+
+  try {
+      const res = await fetch(API_URL + 'upload_document', {
+          method: 'POST',
+          body: formData
+      });
+      const data = await res.json();
+      
+      if (data.status === 'success') {
+          showToast(`¡Archivo guardado exitosamente en ${folder}!`, "success");
+          // Recargar proyectos para tener el JSON actualizado
+          await loadDataFromAPI();
+          // Volver a renderizar activos
+          const updatedProj = mockProjects.find(p => p.id === projId);
+          if (updatedProj) {
+              renderProjectAssets(updatedProj);
+          }
+      } else {
+          alert("Error subiendo archivo: " + data.message);
+      }
+  } catch (err) {
+      alert("Error de conexión al subir el archivo: " + err.message);
+  } finally {
+      e.target.value = '';
+  }
+};
+
+const deleteRealDocument = async (projId, docId, path) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este documento de forma permanente? Esta acción borrará el archivo del servidor.")) return;
+    
+    showToast("Eliminando archivo...", "info");
+    try {
+        const res = await fetchData('delete_document', 'POST', { project_id: projId, doc_id: docId, path: path });
+        if (res.status === 'success') {
+            showToast("Documento eliminado exitosamente.", "success");
+            await loadDataFromAPI();
+            const updatedProj = mockProjects.find(p => p.id === projId);
+            if (updatedProj) renderProjectAssets(updatedProj);
+        } else {
+            alert("Error al eliminar el documento.");
+        }
+    } catch(err) {
+        alert("Error de conexión: " + err.message);
+    }
 };
 
 const handleMockPhotoUpload = async (e) => {
@@ -1412,28 +1452,109 @@ const renderProjectAssets = (proj) => {
   const activeRole = sessionStorage.getItem('pp_role') || 'lector';
   const canWriteProjs = activeRole === 'admin' || activeRole === 'gestor';
   
-  const listDocs = document.getElementById('proj-docs-list');
-  listDocs.innerHTML = '';
-  if(proj.documents && proj.documents.length) {
-     proj.documents.forEach((d, idx) => {
-       const btnDelete = canWriteProjs 
-           ? `<button type="button" class="btn-icon btn-icon-danger" onclick="deleteMockDocument(${proj.id}, ${idx})"><i data-lucide="trash-2" style="width:16px;"></i></button>` 
-           : '';
-       listDocs.innerHTML += `
-         <div class="doc-item" style="display:flex; justify-content:space-between; align-items:center;">
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-               <i data-lucide="file-text" style="color:var(--danger)"></i>
-               <div>
-                  <strong style="display:block; font-size:0.9rem;">${d.name}</strong>
-                  <small style="color:var(--text-muted)">Subido: ${d.date}</small>
+  const accordionContainer = document.getElementById('proj-docs-accordion');
+  if (accordionContainer) {
+    accordionContainer.innerHTML = '';
+    
+    let docs = proj.documents || {};
+    if (Array.isArray(docs)) {
+       docs = { legacy: docs };
+    }
+    
+    const renderFileList = (folderId, subfolderId) => {
+       const fileArray = subfolderId ? (docs[folderId] ? docs[folderId][subfolderId] || [] : []) : (docs[folderId] || []);
+       if (!fileArray || fileArray.length === 0) return '<p style="color:var(--text-muted); font-size:0.85rem; padding:0.5rem 0; margin:0; text-align:center;">No hay archivos en esta carpeta.</p>';
+       
+       return fileArray.map(d => `
+         <div class="doc-item" style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid #e5e7eb; padding:0.5rem 0.75rem; border-radius:6px; margin-bottom:0.5rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem; overflow:hidden;">
+               <i data-lucide="file-text" style="color:var(--danger); flex-shrink:0;"></i>
+               <div style="min-width:0; overflow:hidden;">
+                  <strong style="display:block; font-size:0.85rem; text-overflow:ellipsis; white-space:nowrap; overflow:hidden;" title="${d.name}">${d.name}</strong>
+                  <small style="color:var(--text-muted); font-size:0.7rem; display:block; margin-top:2px;">
+                    ${d.uploaded_by_name ? `Subido por: ${d.uploaded_by_name} • ` : ''}${d.uploaded_at || d.date || ''}
+                  </small>
                </div>
             </div>
-            ${btnDelete}
+            <div style="display:flex; gap:0.25rem;">
+               ${d.path ? `<a href="${API_URL + d.path}" target="_blank" class="btn-icon" style="color:var(--primary)" title="Ver / Descargar"><i data-lucide="external-link" style="width:16px;"></i></a>` : ''}
+               ${canWriteProjs ? `<button type="button" class="btn-icon btn-icon-danger" onclick="deleteRealDocument(${proj.id}, '${d.id || ''}', '${d.path || ''}')" title="Eliminar"><i data-lucide="trash-2" style="width:16px;"></i></button>` : ''}
+            </div>
          </div>
-       `;
-     });
-  } else {
-     listDocs.innerHTML = '<p style="color:var(--text-muted); text-align:center; font-size:0.85rem; padding:1rem;">No hay documentos registrados actualmente.</p>';
+       `).join('');
+    };
+
+    const renderFolder = (folder, subfolderId = null) => {
+        const uId = subfolderId ? `${folder.id}-${subfolderId}` : folder.id;
+        const name = subfolderId ? `Subcarpeta: ${subfolderId.toUpperCase()}` : folder.name;
+        const fArray = subfolderId ? (docs[folder.id] ? docs[folder.id][subfolderId] || [] : []) : (docs[folder.id] || []);
+        const badge = fArray && fArray.length > 0 ? `<span style="background:var(--primary); color:#fff; font-size:0.65rem; padding:0.1rem 0.4rem; border-radius:10px; margin-left:0.5rem;">${fArray.length}</span>` : '';
+        
+        let uploadZone = '';
+        if (canWriteProjs && folder.id !== 'legacy') {
+           uploadZone = `
+              <div class="upload-zone-compact" style="border: 1px dashed var(--primary); padding: 1rem; border-radius: 6px; text-align: center; cursor: pointer; background: #f9fafb; margin-top:0.5rem;" onclick="document.getElementById('upload-${uId}').click()">
+                  <i data-lucide="upload-cloud" style="width:20px; height:20px; color:var(--primary); margin-bottom:0.25rem;"></i>
+                  <p style="color:var(--text-main); font-size:0.85rem; margin:0;">Subir PDF aquí</p>
+                  <input type="file" id="upload-${uId}" accept=".pdf" style="display:none" onchange="uploadRealDocument(event, ${proj.id}, '${folder.id}', '${subfolderId || ''}')">
+              </div>
+           `;
+        }
+
+        return `
+          <div style="border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;">
+             <div style="padding:0.75rem 1rem; background:#f8fafc; border-bottom:1px solid #e5e7eb; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="document.getElementById('folder-${uId}').style.display = document.getElementById('folder-${uId}').style.display === 'none' ? 'block' : 'none'">
+                 <div style="display:flex; align-items:center; font-weight:600; font-size:0.9rem; color:var(--text-main);">
+                     <i data-lucide="folder" style="width:16px; margin-right:0.5rem; color:#64748B;"></i> ${name} ${badge}
+                 </div>
+                 <i data-lucide="chevron-down" style="width:16px; color:#64748B;"></i>
+             </div>
+             <div id="folder-${uId}" style="display:none; padding:1rem; background:#fafafa;">
+                ${renderFileList(folder.id, subfolderId)}
+                ${uploadZone}
+             </div>
+          </div>
+        `;
+    };
+
+    const FOLDERS = [
+      { id: 'resolucion', name: 'Resolución' },
+      { id: 'minuta', name: 'Minuta' },
+      { id: 'estudios_previos', name: 'Estudios Previos' },
+      { id: 'especificaciones_tecnicas', name: 'Especificaciones Técnicas' },
+      { id: 'designacion_supervisor', name: 'Designación Supervisor' },
+      { id: 'documentos_proveedor', name: 'Documentos Proveedor (RUT, SS, Pólizas, etc)' },
+      { id: 'cdp', name: 'CDP' },
+      { id: 'analisis_sector', name: 'Análisis del Sector' },
+      { id: 'rp', name: 'RP' },
+      { id: 'otrosi', name: 'OtroSí (si aplica)' },
+      { id: 'informe_supervision', name: 'Informe de Supervisión', subfolders: ['informe1', 'informe2', 'informe3'] },
+      { id: 'informe_actividades', name: 'Informe de Actividades', subfolders: ['informe1', 'informe2', 'informe3'] },
+      { id: 'acta_finalizacion', name: 'Acta de Finalización o Liquidación' },
+      { id: 'legacy', name: 'Documentos Antiguos (Sin Archivo Físico)' }
+    ];
+
+    FOLDERS.forEach(f => {
+       if (f.id === 'legacy' && (!docs.legacy || docs.legacy.length === 0)) return;
+       
+       if (f.subfolders) {
+           let html = `
+             <div style="border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;">
+                <div style="padding:0.75rem 1rem; background:#f1f5f9; border-bottom:1px solid #e5e7eb; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="document.getElementById('folder-${f.id}').style.display = document.getElementById('folder-${f.id}').style.display === 'none' ? 'flex' : 'none'">
+                    <div style="display:flex; align-items:center; font-weight:600; font-size:0.9rem; color:var(--text-main);">
+                        <i data-lucide="folder-tree" style="width:16px; margin-right:0.5rem; color:#3b82f6;"></i> ${f.name}
+                    </div>
+                    <i data-lucide="chevron-down" style="width:16px; color:#64748B;"></i>
+                </div>
+                <div id="folder-${f.id}" style="display:none; padding:0.5rem; background:#fff; flex-direction:column; gap:0.5rem;">
+           `;
+           f.subfolders.forEach(sub => { html += renderFolder(f, sub); });
+           html += `</div></div>`;
+           accordionContainer.innerHTML += html;
+       } else {
+           accordionContainer.innerHTML += renderFolder(f);
+       }
+    });
   }
   
   // Soporte legado para migracion de arrays planos a objeto agrupado

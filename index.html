@@ -465,16 +465,17 @@
 
                 <!-- Tab Documentos -->
                 <div id="ptab-docs" class="tab-content">
-                    <div class="alert alert-info" style="background:#EFF6FF; color:#1E40AF; padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.85rem; border:1px solid #BFDBFE;">
-                        <i data-lucide="info" style="width:16px; height:16px; margin-right:0.25rem; vertical-align:middle;"></i>
-                        <strong>Límites permitidos:</strong> Máximo 5 archivos PDF. Peso máximo de 2MB por archivo.
+                    <div class="alert alert-info" style="background:#EFF6FF; color:#1E40AF; padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.85rem; border:1px solid #BFDBFE; display:flex; align-items:flex-start;">
+                        <i data-lucide="info" style="width:20px; height:20px; margin-right:0.5rem; flex-shrink:0; margin-top:2px;"></i>
+                        <div>
+                            <strong>Almacenamiento Físico Estricto:</strong> Solo formato <strong>.PDF</strong>. Límite: <strong>2MB</strong>. Guardado y registro de auditoría automáticos.<br>
+                            <small style="margin-top:0.25rem; display:block;">¿Tu PDF pesa más de 2MB? <a href="https://www.ilovepdf.com/es/comprimir_pdf" target="_blank" style="color:#2563EB; font-weight:600; text-decoration:underline;">Comprímelo aquí sin perder calidad</a> antes de subirlo.</small>
+                        </div>
                     </div>
-                    <div class="upload-zone" onclick="document.getElementById('proj-doc-upload').click()" style="border: 2px dashed var(--primary); padding: 2rem; border-radius: 8px; text-align: center; cursor: pointer; background: #f9fafb;">
-                        <i data-lucide="file-up" style="width:32px; height:32px; margin-bottom:0.5rem; color:var(--primary)"></i>
-                        <p style="color:var(--text-main); font-weight:500;">Haz clic aquí para cargar Contratos o Actas (.pdf)</p>
-                        <input type="file" id="proj-doc-upload" accept=".pdf" style="display:none" onchange="handleMockDocUpload(event)">
+                    
+                    <div id="proj-docs-accordion" style="display:flex; flex-direction:column; gap:0.75rem;">
+                        <!-- Se generará dinámicamente mediante JavaScript -->
                     </div>
-                    <div class="doc-list" id="proj-docs-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;"></div>
                 </div>
 
                 <!-- Tab Fotografías (Categorizadas) -->
