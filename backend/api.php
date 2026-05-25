@@ -218,7 +218,7 @@ try {
                         $oldUsers = fetchAll($conn, "SELECT id, username as email, name, role FROM users");
                         echo json_encode($oldUsers);
                     } catch (Throwable $e2) {
-                        echo json_encode(["status" => "error", "message" => $e2->getMessage()]);
+                        echo json_encode(["status" => "error", "message" => utf8_encode($e2->getMessage())]);
                     }
                 }
             } elseif ($method === 'POST') {

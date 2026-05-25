@@ -46,14 +46,13 @@ const fetchData = async (endpoint, method="GET", body=null) => {
 
 const loadDataFromAPI = async () => {
     try {
-        const [resBudgets, resJACs, resDirJACs, resProjects, resPayments, resUsers] = await Promise.all([
-            fetchData('global_budgets'),
-            fetchData('jacs'),
-            fetchData('directory_jacs'),
-            fetchData('projects'),
-            fetchData('payments'),
-            fetchData('users')
-        ]);
+        // Cargar los datos secuencialmente para no saturar al servidor de Hostinger con muchas peticiones simultáneas
+        const resBudgets = await fetchData('global_budgets');
+        const resJACs = await fetchData('jacs');
+        const resDirJACs = await fetchData('directory_jacs');
+        const resProjects = await fetchData('projects');
+        const resPayments = await fetchData('payments');
+        const resUsers = await fetchData('users');
         
         const checkError = (res, name) => {
             if (res && res.status === 'error') {
