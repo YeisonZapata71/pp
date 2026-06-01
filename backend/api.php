@@ -44,7 +44,7 @@ try {
 }
 // ----------------------------
 
-$endpoint = $_GET['endpoint'] ?? '';
+$endpoint = isset($_GET['endpoint']) ? $_GET['endpoint'] : '';
 $method = $_SERVER['REQUEST_METHOD'];
 
 // Helper para obtener arreglos rápido
@@ -72,8 +72,8 @@ try {
     switch ($endpoint) {
         case 'login':
             if ($method === 'POST') {
-                $user = trim($input['email'] ?? $input['username'] ?? '');
-                $pass = $input['password'] ?? '';
+                $user = trim(isset($input['email']) ? $input['email'] : (isset($input['username']) ? $input['username'] : ''));
+                $pass = isset($input['password']) ? $input['password'] : '';
                 try {
                     $data = fetchAll($conn, "SELECT id, email, name, role FROM users WHERE email = ? AND password = ?", "ss", $user, $pass);
                 } catch (Exception $e) {
@@ -92,9 +92,9 @@ try {
                 echo json_encode(fetchAll($conn, "SELECT year, initial_budget as initialBudget, addition, superavit FROM global_budgets"));
             } elseif ($method === 'POST') {
                 $year = $input['year'];
-                $initial = $input['initialBudget'] ?? 0;
-                $addition = $input['addition'] ?? 0;
-                $superavit = $input['superavit'] ?? 0;
+                $initial = isset($input['initialBudget']) ? $input['initialBudget'] : 0;
+                $addition = isset($input['addition']) ? $input['addition'] : 0;
+                $superavit = isset($input['superavit']) ? $input['superavit'] : 0;
                 $sql = "INSERT INTO global_budgets (year, initial_budget, addition, superavit) VALUES (?, ?, ?, ?) 
                         ON DUPLICATE KEY UPDATE initial_budget=?, addition=?, superavit=?";
                 $stmt = $conn->prepare($sql);
@@ -108,11 +108,11 @@ try {
             if ($method === 'GET') {
                 echo json_encode(fetchAll($conn, "SELECT id, name, year, assigned, addition, paid, projects FROM jacs"));
             } elseif ($method === 'POST') {
-                $id = $input['id'] ?? null;
+                $id = isset($input['id']) ? $input['id'] : null;
                 $name = $input['name'];
                 $year = $input['year'];
                 $assigned = $input['assigned'];
-                $addition = $input['addition'] ?? 0;
+                $addition = isset($input['addition']) ? $input['addition'] : 0;
                 $projects = $input['projects'];
                 
                 if ($id) {
@@ -137,7 +137,7 @@ try {
             if ($method === 'GET') {
                 echo json_encode(fetchAll($conn, "SELECT id, name, zone, president, phone FROM directory_jacs"));
             } elseif ($method === 'POST') {
-                $id = $input['id'] ?? null;
+                $id = isset($input['id']) ? $input['id'] : null;
                 $name = $input['name'];
                 $zone = $input['zone'];
                 $president = $input['president'];
@@ -165,18 +165,18 @@ try {
             if ($method === 'GET') {
                 echo json_encode(fetchAll($conn, "SELECT id, jac_id as jacId, year, title, description, status, budget, has_addition as hasAddition, addition, documents_json as documents, photos_json as photos, notes_json as notes FROM projects"));
             } elseif ($method === 'POST') {
-                $id = $input['id'] ?? null;
+                $id = isset($input['id']) ? $input['id'] : null;
                 $jacId = $input['jacId'];
                 $year = $input['year'];
                 $title = $input['title'];
-                $desc = $input['description'] ?? '';
+                $desc = isset($input['description']) ? $input['description'] : '';
                 $status = $input['status'];
                 $budget = $input['budget'];
                 $hasAddition = $input['hasAddition'] ? 1 : 0;
-                $addition = $input['addition'] ?? 0;
-                $docs = json_encode($input['documents'] ?? []);
-                $photos = json_encode($input['photos'] ?? []);
-                $notes = json_encode($input['notes'] ?? []);
+                $addition = isset($input['addition']) ? $input['addition'] : 0;
+                $docs = json_encode(isset($input['documents']) ? $input['documents'] : []);
+                $photos = json_encode(isset($input['photos']) ? $input['photos'] : []);
+                $notes = json_encode(isset($input['notes']) ? $input['notes'] : []);
 
                 if ($id) {
                     $stmt = $conn->prepare("UPDATE projects SET title=?, description=?, status=?, budget=?, has_addition=?, addition=?, documents_json=?, photos_json=?, notes_json=? WHERE id=?");
@@ -193,7 +193,7 @@ try {
                 // 1. Fetch project to get documents_json
                 $projData = fetchAll($conn, "SELECT documents_json FROM projects WHERE id=?", "i", $id);
                 if (count($projData) > 0) {
-                    $docsJson = $projData[0]['documents_json'] ?? '{}';
+                    $docsJson = isset($projData[0]['documents_json']) ? $projData[0]['documents_json'] : '{}';
                     $docsObj = json_decode($docsJson, true);
                     if (is_array($docsObj)) {
                         // Recursively delete files
@@ -355,7 +355,7 @@ try {
 
         case 'recover_password':
             if ($method === 'POST') {
-                $email = $input['email'] ?? '';
+                $email = isset($input['email']) ? $input['email'] : '';
                 try {
                     $data = fetchAll($conn, "SELECT id, name, email FROM users WHERE email = ?", "s", $email);
                 } catch (Exception $e) {
@@ -371,8 +371,8 @@ try {
 
         case 'change_password':
             if ($method === 'POST') {
-                $email = $input['email'] ?? '';
-                $newPass = $input['new_password'] ?? '';
+                $email = isset($input['email']) ? $input['email'] : '';
+                $newPass = isset($input['new_password']) ? $input['new_password'] : '';
                 try {
                     $stmt = $conn->prepare("UPDATE users SET password = ? WHERE email = ?");
                     $stmt->bind_param("ss", $newPass, $email);
@@ -397,11 +397,11 @@ try {
                     exit;
                 }
                 
-                $projId = $_POST['project_id'] ?? null;
-                $folder = $_POST['folder'] ?? 'generales';
-                $subfolder = $_POST['subfolder'] ?? null;
-                $uploaderEmail = $_POST['uploader_email'] ?? 'desconocido';
-                $uploaderName = $_POST['uploader_name'] ?? 'Usuario';
+                $projId = isset($_POST['project_id']) ? $_POST['project_id'] : null;
+                $folder = isset($_POST['folder']) ? $_POST['folder'] : 'generales';
+                $subfolder = isset($_POST['subfolder']) ? $_POST['subfolder'] : null;
+                $uploaderEmail = isset($_POST['uploader_email']) ? $_POST['uploader_email'] : 'desconocido';
+                $uploaderName = isset($_POST['uploader_name']) ? $_POST['uploader_name'] : 'Usuario';
                 
                 if (!$projId) {
                     echo json_encode(["status" => "error", "message" => "Falta el ID del proyecto"]);
@@ -453,7 +453,7 @@ try {
                 try {
                     $projData = fetchAll($conn, "SELECT documents_json FROM projects WHERE id=?", "i", $projId);
                     if (count($projData) > 0) {
-                        $docsJson = $projData[0]['documents_json'] ?? '{}';
+                        $docsJson = isset($projData[0]['documents_json']) ? $projData[0]['documents_json'] : '{}';
                         $docsObj = json_decode($docsJson, true);
                         if (!is_array($docsObj)) $docsObj = []; // Podría ser un array plano (legado) o objeto estructurado
                         
@@ -490,9 +490,9 @@ try {
 
         case 'delete_document':
             if ($method === 'POST') {
-                $projId = $input['project_id'] ?? null;
-                $docId = $input['doc_id'] ?? null;
-                $path = $input['path'] ?? null;
+                $projId = isset($input['project_id']) ? $input['project_id'] : null;
+                $docId = isset($input['doc_id']) ? $input['doc_id'] : null;
+                $path = isset($input['path']) ? $input['path'] : null;
                 
                 if ($path) {
                     $fullPath = __DIR__ . "/../" . $path;
@@ -504,7 +504,7 @@ try {
                 if ($projId && $docId) {
                     $projData = fetchAll($conn, "SELECT documents_json FROM projects WHERE id=?", "i", $projId);
                     if (count($projData) > 0) {
-                        $docsJson = $projData[0]['documents_json'] ?? '{}';
+                        $docsJson = isset($projData[0]['documents_json']) ? $projData[0]['documents_json'] : '{}';
                         $docsObj = json_decode($docsJson, true);
                         if (is_array($docsObj)) {
                             // Recursivamente borrar
